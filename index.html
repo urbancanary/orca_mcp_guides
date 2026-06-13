@@ -344,6 +344,17 @@
       border-bottom: 1px solid var(--line);
     }
 
+    /* Iframe Container */
+    #tab-tables {
+        min-height: 400px;
+    }
+    #widget-iframe {
+        width: 100%;
+        border: none;
+        min-height: 600px;
+        background: transparent;
+    }
+
     .tab {
       padding: 8px 16px;
       font-size: 13px;
@@ -1016,15 +1027,25 @@
     }
 
     function renderTables(response) {
+      const tablesDiv = document.getElementById("tables");
+      const iframe = document.getElementById("widget-iframe");
+
       // 1. Prioritize standardized display blocks (semantic intent)
       if (response && response.display) {
-        applyTheme(response.display.theme);
-        tables.innerHTML = renderDisplayBlocks(response.display);
-        processPendingCharts();
+        if (typeof applyTheme === 'function') applyTheme(response.display.theme);
+        
+        tablesDiv.style.display = "none";
+        iframe.style.display = "block";
+        
+        // Post data to the shell iframe
+        iframe.contentWindow.postMessage(response.display, "*");
         return;
       }
 
       // 2. Fallback to manual rendering (backward compatibility)
+      tablesDiv.style.display = "block";
+      iframe.style.display = "none";
+      
       // Be resilient: orca_query often wraps its payload in a 'data' key.
       // If we see double-wrapping (response.data.data), unwrap it.
       let data = response && response.data ? response.data : response;
