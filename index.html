@@ -653,11 +653,11 @@
     </details>
 
     <div class="mode-toggle">
-      <button class="mode-btn active" data-mode="single">Single query</button>
-      <button class="mode-btn" data-mode="dashboard">Dashboard</button>
+      <button class="mode-btn" data-mode="single">Single query</button>
+      <button class="mode-btn active" data-mode="dashboard">Dashboard</button>
     </div>
 
-    <div id="mode-single">
+    <div id="mode-single" style="display:none">
     <section class="grid">
       <div class="panel">
         <h2>Query</h2>
@@ -846,7 +846,7 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
     </section>
     </div><!-- /#mode-single -->
 
-    <div id="mode-dashboard" style="display:none">
+    <div id="mode-dashboard">
       <section class="dash">
         <div class="panel">
           <h2>Your dashboard — 6 questions</h2>
