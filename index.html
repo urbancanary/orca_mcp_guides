@@ -512,7 +512,7 @@
 
         <div id="tab-tables" class="tab-content active">
           <div id="tables">
-            <div class="empty-table">Click "Send Query" to see yield, duration, cash, and allocation tables.</div>
+            <div class="empty-table">Click "Send Query" to see a formatted preview of the results.</div>
           </div>
         </div>
 
@@ -837,7 +837,7 @@ function renderBlock(block) {
         ratingRows(allocation.by_rating)
       ].filter(Boolean).join("");
 
-      tables.innerHTML = html || '<div class="empty-table">No table-shaped data was returned for this query. See the raw JSON below.</div>';
+      tables.innerHTML = html || '<div class="empty-table">No formatted preview available for this query. See the raw JSON tab for details.</div>';
     }
 
     async function sendQuery() {
@@ -849,9 +849,9 @@ function renderBlock(block) {
 
       sendButton.disabled = true;
       output.textContent = "Loading...";
-      tables.innerHTML = '<div class="empty-table">Loading tables...</div>';
+      tables.innerHTML = '<div class="empty-table">Loading preview...</div>';
       
-      // Auto-switch to Tables tab
+      // Auto-switch to Preview tab
       document.querySelector('[data-tab="tab-tables"]').click();
 
       try {
@@ -930,7 +930,7 @@ function renderBlock(block) {
     async function executeManualPayload(payload) {
       sendButton.disabled = true;
       output.textContent = "Discovering capabilities...";
-      tables.innerHTML = '<div class="empty-table">Loading capabilities...</div>';
+      tables.innerHTML = '<div class="empty-table">Loading preview...</div>';
       document.querySelector('[data-tab="tab-tables"]').click();
 
       try {
