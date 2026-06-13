@@ -410,7 +410,9 @@
       padding: 12px;
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       font-size: 12px;
+      line-height: 1.5;
       color: var(--brand);
+      white-space: pre;
       overflow-x: auto;
       margin-bottom: 12px;
     }
@@ -623,35 +625,82 @@
 
         <div id="tab-docs" class="tab-content">
           <div class="doc-section">
-            <h3>Why this keeps working with zero effort from you</h3>
-            <p>Orca sends <strong>finished pieces</strong> — a chart, a table, a fact sheet — already styled in your colours. Your page just shows whatever arrives.</p>
-            <div class="schema">
-              <div><strong>You never maintain charts.</strong> New data, new question types, new analytics show up here automatically. Nothing to rebuild.</div>
-              <div><strong>It's always your brand.</strong> Orca sends a theme with every response, so charts and tables render in your colours — not ours.</div>
-              <div><strong>It costs nothing to stay current.</strong> As the analytics improve, this page improves the same day — no developer, no update.</div>
-            </div>
-            <p class="note">You're not building a dashboard. You're plugging into a brain that keeps getting smarter.</p>
+            <h3>The lightbulb 💡</h3>
+            <p><strong>In your own app, you just type what you want — in plain English — and the finished answer comes back ready to show.</strong></p>
+            <p>"Largest country exposures in wnbf" → a finished pie chart. "Is XS1709535097 cheap?" → a finished fact sheet. You don't pick a tool, build a request, or assemble the answer. You write the <em>question</em>; Orca returns the <em>finished thing</em>.</p>
+            <p class="note">Two separate halves: <strong>the question is yours</strong> — free text, typed by your user, from anywhere in your app — and <strong>the answer is Orca's</strong> — a finished, branded chart, table, or summary. You ask for the answer; you don't make it.</p>
           </div>
 
           <div class="doc-section">
-            <h3>For the builder: how the response is shaped</h3>
-            <p>Call <code>/call</code> with <code>include_display: true</code>. Orca returns a <code>display</code> object with a <code>theme</code> and an array of <code>blocks</code>. You render blocks by <em>type</em> — so a new Orca tool that returns a <code>chart</code> renders here for free.</p>
+            <h3>So what do you actually build?</h3>
+            <p>Almost nothing. You send the question, and Orca answers with a typed "block" — it decides whether the answer is a chart, a table, or a fact sheet. You write the code to draw each <em>kind</em> of block exactly once, and after that every new question just works.</p>
+            <p class="note">You never write a "country exposures chart" and a "yield chart" and a "ratings chart". You write <em>"how to draw a chart"</em> one time. Orca picks which one each answer is.</p>
+          </div>
+
+          <div class="doc-section">
+            <h3>Step 1 — Ask Orca, and ask for display blocks</h3>
+            <p>One POST. The only special bit is <code>include_display: true</code> — that tells Orca to return ready-to-draw blocks instead of raw data.</p>
             <div class="code-block">
-"display": {
-  "theme": {
-    "brand":   "#21315c",
-    "accent":  "#c8102e",
-    "palette": ["#21315c", "#c8102e", "..."]
-  },
-  "blocks": [
-    { "type": "chart", "chart_type": "pie", "title": "Country Exposure",
-      "data": [ { "label": "Brazil", "value": 18.2 } ] },
-    { "type": "factsheet", "title": "Bond Details",
-      "rows": [ { "label": "ISIN", "value": "..." } ] }
+const res = await fetch("https://orca-mcp.x-trillion.com/call", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    tool: "orca_query",
+    args: { query: "largest country exposures in wnbf", client_id: "guinness" },
+    include_display: true        // ← give me ready-to-draw blocks
+  })
+});
+const { display } = await res.json();
+            </div>
+          </div>
+
+          <div class="doc-section">
+            <h3>Step 2 — What comes back: a list of typed blocks</h3>
+            <p><code>display.blocks</code> is an array. Each block says what it <em>is</em> (<code>type</code>) and carries its own data. <code>display.theme</code> is your brand (more below).</p>
+            <div class="code-block">
+display = {
+  theme:  { brand: "#21315c", accent: "#c8102e", palette: ["#236192", "..."] },
+  blocks: [
+    { type: "chart", chart_type: "pie", title: "Country Exposure",
+      data: [ { label: "Brazil", value: 18.2 }, { label: "Mexico", value: 12.1 } ] },
+    { type: "table", title: "Top Holdings",
+      columns: [ { key: "isin", label: "ISIN" }, { key: "weight", label: "Weight" } ],
+      rows:    [ { isin: "XS1709535097", weight: "4.2%" } ] }
   ]
 }
             </div>
-            <p class="note">The <code>theme</code> follows the <code>client_id</code> you send — Orca looks the brand up centrally, so the <strong>same page renders in a different team's colours just by changing <code>client_id</code></strong>. Want to force a specific look regardless? Set <code>HOST_THEME</code> at the top of the script — your colours always win.</p>
+          </div>
+
+          <div class="doc-section">
+            <h3>Step 3 — Draw each block. Write this once.</h3>
+            <p>Loop the blocks, switch on <code>type</code>, hand each to a small draw function. This is the entire integration — and it never grows.</p>
+            <div class="code-block">
+function renderBlock(block) {
+  switch (block.type) {
+    case "chart":     return drawChart(block);     // ← ONE chart function, every chart
+    case "table":     return drawTable(block);     // ← ONE table function, every table
+    case "factsheet": return drawFactsheet(block);
+    default:          return;                       // unknown type? skip it, don't crash
+  }
+}
+
+display.blocks.forEach(renderBlock);
+            </div>
+            <p class="note">The payoff: when Orca gains a new capability next month that returns a <code>chart</code>, it renders here with <strong>zero new code</strong> — because you already handle <code>"chart"</code>. Your page stops growing; the answers keep coming.</p>
+          </div>
+
+          <div class="doc-section">
+            <h3>Your brand comes with the answer</h3>
+            <p><code>display.theme</code> is resolved by Orca from the <code>client_id</code> you send — so charts and tables arrive in your colours, not ours. Apply it once when a response lands:</p>
+            <div class="code-block">
+applyTheme(display.theme);   // sets chart palette + colours from your brand
+            </div>
+            <p class="note">Same page, different team: send <code>client_id: "guinness"</code> and it's Guinness navy; send another client and it's their colours — no code change. To force a specific look regardless, set <code>HOST_THEME</code> at the top of the script and your values always win.</p>
+          </div>
+
+          <div class="doc-section">
+            <h3>Even less work, later</h3>
+            <p>The three steps above are the do-it-yourself version. The next step is that you don't write <code>drawChart</code> at all — you drop in <strong>our</strong> renderer component and feed it <code>display</code>. Same blocks, same theme, but the drawing code lives with us and every client gets it for free. Until then, the loop above is all you need.</p>
           </div>
         </div>
       </div>
