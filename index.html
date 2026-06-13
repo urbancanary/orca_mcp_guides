@@ -29,9 +29,17 @@
     }
 
     main {
+      max-width: none;
+      margin: 0;
+      padding: 32px 32px 48px;
+    }
+
+    /* Single-query view keeps its original comfortable width */
+    #mode-single,
+    header,
+    .tldr,
+    .mode-toggle {
       max-width: 1100px;
-      margin: 0 auto;
-      padding: 32px 20px 48px;
     }
 
     header {
@@ -507,6 +515,105 @@
 
     .tldr-points .ico { margin-right: 8px; }
 
+    /* Mode toggle (Single query / Dashboard) */
+    .mode-toggle {
+      display: flex;
+      gap: 4px;
+      margin-top: 22px;
+    }
+
+    .mode-btn {
+      padding: 9px 18px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--muted);
+      background: var(--soft);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .mode-btn.active {
+      color: #fff;
+      background: var(--brand);
+      border-color: var(--brand);
+    }
+
+    /* Dashboard mode */
+    .dash {
+      display: grid;
+      grid-template-columns: 360px minmax(0, 794px); /* questions | A4-width responses */
+      gap: 24px;
+      margin-top: 24px;
+      align-items: start;
+    }
+
+    .dash-row {
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+      margin-bottom: 8px;
+    }
+
+    .dash-num {
+      flex: 0 0 22px;
+      height: 22px;
+      line-height: 22px;
+      text-align: center;
+      background: var(--brand);
+      color: #fff;
+      border-radius: 50%;
+      font-size: 11px;
+      font-weight: 700;
+      margin-top: 9px;
+    }
+
+    .dash-q { min-height: 0; }
+
+    /* Responses stack as an A4-width report column, scrollable if tall */
+    .dash-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      max-height: calc(100vh - 120px);
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .dash-cell {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      background: #fff;
+      min-height: 130px;
+      overflow: hidden;
+    }
+
+    .dash-cell-q {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--brand);
+      margin-bottom: 8px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .dash-cell-body {
+      overflow-x: auto;
+    }
+
+    .dash-cell .chart-container {
+      height: 220px;
+      margin-bottom: 0;
+      padding: 8px;
+    }
+
+    .dash-cell .table-title { margin-top: 0; }
+
+    @media (max-width: 860px) {
+      .dash, .dash-grid { grid-template-columns: 1fr; }
+    }
+
     @media (max-width: 860px) {
       header,
       .grid,
@@ -545,6 +652,12 @@
       </div>
     </details>
 
+    <div class="mode-toggle">
+      <button class="mode-btn active" data-mode="single">Single query</button>
+      <button class="mode-btn" data-mode="dashboard">Dashboard</button>
+    </div>
+
+    <div id="mode-single">
     <section class="grid">
       <div class="panel">
         <h2>Query</h2>
@@ -731,6 +844,27 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
         </div>
       </div>
     </section>
+    </div><!-- /#mode-single -->
+
+    <div id="mode-dashboard" style="display:none">
+      <section class="dash">
+        <div class="panel">
+          <h2>Your dashboard — 6 questions</h2>
+          <p class="note">Edit any question, then press Run. Each panel on the right fills with a finished, on-brand component. This whole dashboard is just six questions — you didn't build a single chart.</p>
+          <div id="dashQueryList"></div>
+          <div class="actions">
+            <button id="dashRun">Run ▶</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>Dashboard</h2>
+          <div id="dashGrid" class="dash-grid">
+            <div class="empty-table">Edit the six questions on the left and press Run — each panel fills with a finished component, in your brand colours.</div>
+          </div>
+        </div>
+      </section>
+    </div><!-- /#mode-dashboard -->
   </main>
 
   <script>
@@ -838,6 +972,7 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
     }
 
     let pendingCharts = [];
+    let chartSeq = 0;
 
     function renderDisplayBlocks(display) {
       if (!display || !Array.isArray(display.blocks)) return "";
@@ -845,7 +980,7 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
       pendingCharts = []; // Reset
       
       return display.blocks.map((block, idx) => {
-        let blockHtml = `<div class="table-title">${escapeHtml(block.title || block.type)}</div>`;
+        let blockHtml = block.title ? `<div class="table-title">${escapeHtml(block.title)}</div>` : "";
         
         if (block.type === "factsheet") {
           const rows = (block.rows || []).map(row => `
@@ -880,10 +1015,15 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
           `;
         }
         else if (block.type === "text") {
-          blockHtml += `<div class="block-text">${escapeHtml(block.content)}</div>`;
+          const c = (block.content || "").trim();
+          if (/^error[:\s'"]/i.test(c)) {
+            blockHtml += `<div class="empty-table">Orca can't answer this one yet.</div>`;
+          } else {
+            blockHtml += `<div class="block-text">${escapeHtml(c)}</div>`;
+          }
         }
         else if (block.type === "chart") {
-          const chartId = `chart-${idx}-${Date.now()}`;
+          const chartId = `chart-${chartSeq++}`;
           pendingCharts.push({ id: chartId, block: block });
           blockHtml += `
             <div class="chart-container">
@@ -1291,7 +1431,7 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
         const warn = (env.warnings && env.warnings[0] && env.warnings[0].message) || "Not normalized into a product type.";
         html += `<div class="empty-table">${escapeHtml(warn)} See the full envelope below.</div>`;
       }
-      html += `<div class="table-title">Raw envelope</div><pre>${escapeHtml(JSON.stringify(env, null, 2))}</pre>`;
+      html += `<div class="table-title">Raw envelope</div><pre style="min-height:0;max-height:none;overflow:visible">${escapeHtml(JSON.stringify(env, null, 2))}</pre>`;
       queryApiOut.innerHTML = html;
     }
 
@@ -1334,6 +1474,104 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
     document.querySelectorAll(".preset-q").forEach((button) => {
       button.addEventListener("click", () => { queryApiInput.value = button.textContent; });
     });
+
+    // ── Dashboard mode — six editable questions → an auto-built layout ──
+    // Same Orca call as a single query, fanned out across six panels. Proves
+    // the whole idea: a branded dashboard is just six questions, no charts built.
+    const DEFAULT_DASH = [
+      "Largest country exposures in wnbf",
+      "How much cash is in wnbf?",
+      "What is the average credit rating of wnbf?",
+      "Which bonds are cheap or rich?",
+      "Rating allocation for wnbf",
+      "Summarize the portfolio positioning in client-friendly language"
+    ];
+
+    function buildDashQueries() {
+      document.getElementById("dashQueryList").innerHTML = DEFAULT_DASH.map((q, i) => `
+        <div class="dash-row">
+          <div class="dash-num">${i + 1}</div>
+          <textarea class="dash-q" rows="2">${escapeHtml(q)}</textarea>
+        </div>`).join("");
+    }
+
+    function renderDashboardCell(bodyEl, response) {
+      // Same logic as renderTables, inline, targeting one cell.
+      if (response && response.display && Array.isArray(response.display.blocks) && response.display.blocks.length) {
+        if (typeof applyTheme === "function") applyTheme(response.display.theme);
+        bodyEl.innerHTML = renderDisplayBlocks(response.display);
+        processPendingCharts();
+        return;
+      }
+      let data = response && response.data ? response.data : response;
+      if (data && data.data && typeof data.data === "object") data = data.data;
+      const err = data && data.error;
+      if (err) {
+        const msg = typeof err === "string" ? err : (err.message || "no data");
+        bodyEl.innerHTML = `<div class="empty-table">Orca couldn't answer this one yet: ${escapeHtml(msg)}</div>`;
+        return;
+      }
+      const summary = data && data.summary;
+      const allocation = data && data.allocation ? data.allocation : {};
+      const html = [
+        bondRows(data),
+        metricRows(summary),
+        countryRows(allocation.by_country),
+        ratingRows(allocation.by_rating)
+      ].filter(Boolean).join("");
+      bodyEl.innerHTML = html || '<div class="empty-table">No preview for this question. See Single query → Raw JSON.</div>';
+    }
+
+    async function runDashboard() {
+      const grid = document.getElementById("dashGrid");
+      const queries = Array.from(document.querySelectorAll(".dash-q")).map(t => t.value.trim());
+      grid.innerHTML = "";
+      const bodies = queries.map((q) => {
+        const cell = document.createElement("div");
+        cell.className = "dash-cell";
+        cell.innerHTML = `<div class="dash-cell-q">${escapeHtml(q || "(empty)")}</div>` +
+          `<div class="dash-cell-body"><div class="empty-table">Loading…</div></div>`;
+        grid.appendChild(cell);
+        return cell.querySelector(".dash-cell-body");
+      });
+
+      const runBtn = document.getElementById("dashRun");
+      runBtn.disabled = true;
+      await Promise.all(queries.map(async (q, i) => {
+        if (!q) { bodies[i].innerHTML = '<div class="empty-table">Empty question.</div>'; return; }
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 60000);
+        try {
+          const res = await fetch(ENDPOINT, {
+            method: "POST",
+            headers: buildHeaders(),
+            body: JSON.stringify({
+              tool: "orca_query",
+              args: { query: q, client_id: clientInput.value.trim() || SITE.client_id },
+              include_display: true
+            }),
+            signal: controller.signal
+          });
+          clearTimeout(timeoutId);
+          renderDashboardCell(bodies[i], await res.json());
+        } catch (err) {
+          clearTimeout(timeoutId);
+          bodies[i].innerHTML = `<div class="empty-table">${err.name === "AbortError" ? "Timed out after 60s." : "Request failed."}</div>`;
+        }
+      }));
+      runBtn.disabled = false;
+    }
+
+    document.getElementById("dashRun").addEventListener("click", runDashboard);
+    document.querySelectorAll(".mode-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const mode = btn.getAttribute("data-mode");
+        document.querySelectorAll(".mode-btn").forEach(b => b.classList.toggle("active", b === btn));
+        document.getElementById("mode-single").style.display = mode === "single" ? "" : "none";
+        document.getElementById("mode-dashboard").style.display = mode === "dashboard" ? "" : "none";
+      });
+    });
+    buildDashQueries();
 
     // Subdomain-driven defaults (tom.x-trillion.com → Tom/guinness, etc.)
     clientInput.value = SITE.client_id;
