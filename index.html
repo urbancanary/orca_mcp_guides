@@ -263,6 +263,19 @@
       overflow-wrap: anywhere;
     }
 
+    /* Text Blocks */
+    .block-text {
+      padding: 16px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--ink);
+      white-space: pre-wrap;
+      margin-bottom: 16px;
+    }
+
     /* Discovery Cards */
     .discovery-grid {
       display: grid;
@@ -492,7 +505,7 @@
         <h2>Results</h2>
         
         <div class="tabs">
-          <div class="tab active" data-tab="tab-tables">Tables</div>
+          <div class="tab active" data-tab="tab-tables">Preview</div>
           <div class="tab" data-tab="tab-json">Raw JSON</div>
           <div class="tab" data-tab="tab-docs">How it Works</div>
         </div>
@@ -670,6 +683,9 @@ function renderBlock(block) {
               `).join("")}</tbody>
             </table>
           `;
+        }
+        else if (block.type === "text") {
+          blockHtml += `<div class="block-text">${escapeHtml(block.content)}</div>`;
         }
         else if (block.type === "chart") {
           blockHtml += `<div class="empty-table">Chart: ${escapeHtml(block.title)} (Rendering logic for charts can be added here)</div>`;
