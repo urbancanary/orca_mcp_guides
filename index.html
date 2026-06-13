@@ -861,12 +861,18 @@ function renderBlock(block) {
       // Auto-switch to Preview tab
       document.querySelector('[data-tab="tab-tables"]').click();
 
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout
+
       try {
         const res = await fetch(ENDPOINT, {
           method: "POST",
           headers: buildHeaders(),
-          body: JSON.stringify(payload)
+          body: JSON.stringify(payload),
+          signal: controller.signal
         });
+        clearTimeout(timeoutId);
+
         const text = await res.text();
         let data;
         try {
@@ -874,12 +880,14 @@ function renderBlock(block) {
           renderTables(data);
           output.textContent = JSON.stringify(data, null, 2);
         } catch (err) {
-          tables.innerHTML = '<div class="empty-table">The response was not JSON. See raw output below.</div>';
+          tables.innerHTML = `<div class="empty-table">The response was not JSON (HTTP ${res.status}). See raw output below.</div>`;
           output.textContent = text;
         }
       } catch (err) {
-        tables.innerHTML = '<div class="empty-table">Request failed.</div>';
-        output.textContent = "Request failed: " + err.message;
+        clearTimeout(timeoutId);
+        const isTimeout = err.name === 'AbortError';
+        tables.innerHTML = `<div class="empty-table">${isTimeout ? 'Request timed out after 60s.' : 'Request failed.'}</div>`;
+        output.textContent = `Request failed: ${err.message}${isTimeout ? ' (Timeout)' : ''}`;
       } finally {
         sendButton.disabled = false;
       }
@@ -940,17 +948,25 @@ function renderBlock(block) {
       tables.innerHTML = '<div class="empty-table">Loading preview...</div>';
       document.querySelector('[data-tab="tab-tables"]').click();
 
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000);
+
       try {
         const res = await fetch(ENDPOINT, {
           method: "POST",
           headers: buildHeaders(),
-          body: JSON.stringify(payload)
+          body: JSON.stringify(payload),
+          signal: controller.signal
         });
+        clearTimeout(timeoutId);
+        
         const data = await res.json();
         renderTables(data);
         output.textContent = JSON.stringify(data, null, 2);
       } catch (err) {
-        tables.innerHTML = '<div class="empty-table">Discovery failed.</div>';
+        clearTimeout(timeoutId);
+        const isTimeout = err.name === 'AbortError';
+        tables.innerHTML = `<div class="empty-table">${isTimeout ? 'Discovery timed out.' : 'Discovery failed.'}</div>`;
         output.textContent = "Discovery failed: " + err.message;
       } finally {
         sendButton.disabled = false;
