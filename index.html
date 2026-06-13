@@ -570,14 +570,13 @@
 
     .dash-q { min-height: 0; }
 
-    /* Responses fill the right side: 2 columns, equal-height rows sized to
-       fit the viewport so the whole dashboard fits on screen. */
+    /* Responses fill the right side: 2 columns, each widget expands to its
+       own content (demo — fine if the grid runs off-screen and the page scrolls). */
     .dash-grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 14px;
-      height: calc(100vh - 150px);
-      grid-auto-rows: 1fr;
+      align-items: start;
     }
 
     .dash-cell {
@@ -585,10 +584,6 @@
       border-radius: 8px;
       padding: 12px;
       background: #fff;
-      display: flex;
-      flex-direction: column;
-      min-height: 0;
-      overflow: hidden;
     }
 
     .dash-cell-q {
@@ -601,31 +596,14 @@
       border-bottom: 1px solid var(--line);
     }
 
-    .dash-cell-body {
-      flex: 1;
-      min-height: 0;
-      overflow: auto;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .dash-cell-body > .table-title { flex: 0 0 auto; }
-
-    /* Chart fills the remaining cell height; tables scroll within it */
+    /* Charts get a sensible fixed height; tables/factsheets show in full */
     .dash-cell .chart-container {
-      flex: 1 1 auto;
-      height: auto;
-      min-height: 120px;
+      height: 280px;
       margin-bottom: 0;
       padding: 8px;
     }
 
-    .dash-cell-body > .table-scroll {
-      flex: 1 1 auto;
-      min-height: 0;
-      overflow: auto;
-      margin-bottom: 0;
-    }
+    .dash-cell .table-scroll { margin-bottom: 0; }
 
     .dash-cell .table-title { margin-top: 0; }
 
@@ -1014,6 +992,23 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
       return escapeHtml(value);
     }
 
+    // Sensible number formatting, controlled by us — not Orca's raw values.
+    // Percent: 2dp + %. Big values: thousands-separated, 0dp. Else: 2dp / int.
+    // Text (countries, ratings, ISINs…) passes through untouched.
+    function fmtNumber(value, label) {
+      if (value === null || value === undefined || value === "") return "-";
+      const s = String(value).trim();
+      const n = parseFloat(s.replace(/[, %]/g, ""));
+      if (!/-?\d/.test(s) || !isFinite(n)) return escapeHtml(s); // not numeric
+      const lab = (label || "").toLowerCase();
+      const isPct = s.includes("%") || /\b(pct|%|weight|yield)\b/.test(lab);
+      if (isPct) return n.toFixed(2) + "%"; // consistent 2dp for all percentages
+      const isMoney = /\b(value|amount|par|notional|mv|nav|cash)\b/.test(lab);
+      if (isMoney || Math.abs(n) >= 1000) return n.toLocaleString("en-US", { maximumFractionDigits: 0 });
+      if (Number.isInteger(n)) return String(n);
+      return n.toFixed(2);
+    }
+
     let pendingCharts = [];
     let chartSeq = 0;
 
@@ -1029,19 +1024,20 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
           const rows = (block.rows || []).map(row => `
             <div class="fact-row">
               <div class="fact-label">${escapeHtml(row.label)}</div>
-              <div class="fact-value">${fmt(row.value)}</div>
+              <div class="fact-value">${fmtNumber(row.value, row.label)}</div>
             </div>
           `).join("");
           blockHtml += `<div class="factsheet">${rows}</div>`;
-        } 
+        }
         else if (block.type === "table") {
-          const cols = block.columns || [];
+          // Drop Orca's pre-formatted *_Fmt duplicate columns — we format the raw values ourselves.
+          const cols = (block.columns || []).filter(c => !(c.label || "").toLowerCase().trim().endsWith("fmt"));
           blockHtml += `
             <div class="table-scroll">
               <table>
                 <thead><tr>${cols.map(c => `<th>${escapeHtml(c.label)}</th>`).join("")}</tr></thead>
                 <tbody>${(block.rows || []).map(row => `
-                  <tr>${cols.map(c => `<td>${fmt(row[c.key])}</td>`).join("")}</tr>
+                  <tr>${cols.map(c => `<td>${fmtNumber(row[c.key], c.label)}</td>`).join("")}</tr>
                 `).join("")}</tbody>
               </table>
             </div>
@@ -1051,9 +1047,11 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
           blockHtml += `
             <table>
               <thead><tr><th>Metric</th><th>Value</th></tr></thead>
-              <tbody>${(block.metrics || []).map(m => `
-                <tr><td>${escapeHtml(m.label)}</td><td>${fmt(m.value)}${escapeHtml(m.unit || "")}</td></tr>
-              `).join("")}</tbody>
+              <tbody>${(block.metrics || []).map(m => {
+                const val = fmtNumber(m.value, m.label);
+                const unit = (m.unit && !String(m.value).includes(m.unit)) ? escapeHtml(m.unit) : "";
+                return `<tr><td>${escapeHtml(m.label)}</td><td>${val}${unit}</td></tr>`;
+              }).join("")}</tbody>
             </table>
           `;
         }
