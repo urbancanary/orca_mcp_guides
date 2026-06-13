@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orca Widget Shell</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --ink: #172033;
+            --muted: #5e687a;
+            --line: #d8dee9;
+            --panel: #ffffff;
+            --bg: #f5f7fb;
+            --brand: #21315c;
+            --accent: #c8102e;
+            --soft: #eef3f8;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 16px;
+            background: transparent;
+            color: var(--ink);
+            overflow-x: hidden;
+        }
+
+        /* Standardized Block Containers */
+        .widget-block {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .block-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--brand);
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+        }
+
+        /* Factsheet Style */
+        .fact-row {
+            display: grid;
+            grid-template-columns: minmax(120px, 0.4fr) minmax(0, 0.6fr);
+            gap: 12px;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--soft);
+        }
+        .fact-row:last-child { border-bottom: none; }
+        .fact-label { font-size: 12px; font-weight: 700; color: var(--muted); }
+        .fact-value { font-size: 13px; text-align: right; overflow-wrap: anywhere; }
+
+        /* Table Style */
+        .table-scroll { overflow-x: auto; margin-top: 8px; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th { text-align: left; padding: 10px 8px; background: var(--soft); color: var(--brand); font-weight: 700; }
+        td { padding: 10px 8px; border-bottom: 1px solid var(--line); }
+        tr:last-child td { border-bottom: none; }
+
+        /* Chart Style */
+        .chart-container { height: 260px; position: relative; }
+
+        /* Text Style */
+        .text-content { font-size: 14px; line-height: 1.6; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <div id="widget-root"></div>
+
+    <script>
+        window.addEventListener('message', (event) => {
+            const payload = event.data;
+            if (payload && (payload.blocks || payload.display)) {
+                render(payload.display || payload);
+            }
+        });
+
+        function render(display) {
+            const root = document.getElementById('widget-root');
+            if (!display || !Array.isArray(display.blocks)) return;
+
+            const html = display.blocks.map((block, idx) => {
+                let content = '';
+                
+                if (block.type === 'factsheet') {
+                    content = '<div class="factsheet">' + (block.rows || []).map(r => 
+                        '<div class="fact-row"><div class="fact-label">' + escapeHtml(r.label) + '</div>' +
+                        '<div class="fact-value">' + escapeHtml(String(r.value ?? "-")) + '</div></div>').join('') + '</div>';
+                }
+                else if (block.type === 'table') {
+                    const cols = block.columns || [];
+                    content = '<div class="table-scroll"><table>' +
+                        '<thead><tr>' + cols.map(c => '<th>' + escapeHtml(c.label) + '</th>').join('') + '</tr></thead>' +
+                        '<tbody>' + (block.rows || []).map(row => 
+                            '<tr>' + cols.map(c => '<td>' + escapeHtml(String(row[c.key] ?? "-")) + '</td>').join('') + '</tr>'
+                        ).join('') + '</tbody></table></div>';
+                }
+                else if (block.type === 'chart') {
+                    const chartId = 'chart-' + idx;
+                    setTimeout(() => initChart(chartId, block), 0);
+                    content = '<div class="chart-container"><canvas id="' + chartId + '"></canvas></div>';
+                }
+                else if (block.type === 'text') {
+                    content = '<div class="text-content">' + escapeHtml(block.content) + '</div>';
+                }
+
+                return '<div class="widget-block"><div class="block-title">' + 
+                    escapeHtml(block.title || block.type) + '</div>' + content + '</div>';
+            }).join('');
+
+            root.innerHTML = html;
+        }
+
+        function initChart(id, block) {
+            const ctx = document.getElementById(id);
+            if (!ctx || !window.Chart) return;
+            new Chart(ctx, {
+                type: block.chart_type === 'pie' ? 'pie' : 'bar',
+                data: {
+                    labels: block.data.map(d => d.label),
+                    datasets: [{
+                        data: block.data.map(d => d.value),
+                        backgroundColor: ['#21315c', '#c8102e', '#5e687a', '#d8dee9', '#4a5568']
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>

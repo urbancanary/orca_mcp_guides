@@ -451,6 +451,49 @@
       gap: 12px;
     }
 
+    /* TL;DR banner (for non-technical readers) */
+    .tldr {
+      margin-top: 20px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: 0 8px 24px rgba(23, 32, 51, 0.06);
+      overflow: hidden;
+    }
+
+    .tldr > summary {
+      padding: 14px 18px;
+      font-weight: 800;
+      color: var(--brand);
+      cursor: pointer;
+      font-size: 14px;
+      list-style: none;
+    }
+
+    .tldr > summary::-webkit-details-marker { display: none; }
+    .tldr > summary::before { content: "▾  "; }
+    .tldr[open] > summary { border-bottom: 1px solid var(--line); }
+
+    .tldr-body { padding: 16px 18px; }
+    .tldr-body p { font-size: 14px; }
+    .tldr-analogy { color: var(--muted); }
+
+    .tldr-points {
+      display: grid;
+      gap: 8px;
+      margin: 14px 0;
+    }
+
+    .tldr-points div {
+      font-size: 14px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--soft);
+    }
+
+    .tldr-points .ico { margin-right: 8px; }
+
     @media (max-width: 860px) {
       header,
       .grid,
@@ -470,15 +513,29 @@
     <header>
       <div>
         <h1>Ask Orca</h1>
-        <p class="subhead">A simple natural-language data endpoint for marketing and client-service questions. Type a question, send it to Orca, and inspect the JSON returned by the service.</p>
+        <p class="subhead">Ask a question in plain English. Get back a finished, on-brand answer — a chart, a table, a client-ready summary — that you can drop straight into your work. No spreadsheets, no analysts, no chart-building.</p>
       </div>
       <div class="badge">Marketing Demo</div>
     </header>
 
+    <details class="tldr" open>
+      <summary>New here? 10-second explainer</summary>
+      <div class="tldr-body">
+        <p><strong>You ask a question in plain English. You get back a finished answer</strong> — a chart, a table, or a short write-up — already in your brand colours, ready to use.</p>
+        <p class="tldr-analogy">Think of it like a vending machine for portfolio answers: press a button ("largest country exposures?") and out comes the finished thing. You don't cook it or plate it — it arrives done.</p>
+        <div class="tldr-points">
+          <div><span class="ico">🗣️</span><strong>Ask like a human.</strong> No codes, no menus. "Which bonds look cheap?" works.</div>
+          <div><span class="ico">🎨</span><strong>It looks like you.</strong> Every chart and table comes out in your colours, not ours.</div>
+          <div><span class="ico">🔄</span><strong>It gets smarter on its own.</strong> When new data is added to Orca, it just appears here — nobody has to update this page.</div>
+        </div>
+        <p class="note">Type a question on the left, watch the answer build on the right.</p>
+      </div>
+    </details>
+
     <section class="grid">
       <div class="panel">
         <h2>Query</h2>
-        <p class="note">Recommended endpoint for Tom:</p>
+        <p class="note" data-site-label="Recommended endpoint for {label}:">Recommended endpoint for Tom:</p>
         <code class="url" id="endpointLabel">https://orca-mcp.x-trillion.com/call</code>
 
         <label for="query">Question</label>
@@ -490,8 +547,19 @@
             <input id="clientId" value="guinness">
           </div>
           <div>
+            <label for="asOf">As of date</label>
+            <input id="asOf" type="date">
+          </div>
+        </div>
+
+        <div class="split">
+          <div>
             <label for="email">User email, optional</label>
             <input id="email" placeholder="tom@example.com">
+          </div>
+          <div>
+            <label>&nbsp;</label>
+            <button class="secondary" id="priorMonthEnd" style="width:100%">Use prior month-end</button>
           </div>
         </div>
 
@@ -519,12 +587,13 @@
         <div class="tabs">
           <div class="tab active" data-tab="tab-tables">Preview</div>
           <div class="tab" data-tab="tab-json">Raw JSON</div>
+          <div class="tab" data-tab="tab-query">Product API</div>
           <div class="tab" data-tab="tab-docs">How it Works</div>
         </div>
 
         <div id="tab-tables" class="tab-content active">
           <div id="tables">
-            <div class="empty-table">Click "Send Query" to see a formatted preview of the results.</div>
+            <div class="empty-table">This panel stays empty until you ask something — then it fills with finished components. Try <em>"What are the largest country exposures in wnbf?"</em> You'll get a chart. You didn't build the chart — Orca did. That's the whole idea: <strong>you display answers, you don't build them.</strong></div>
           </div>
         </div>
 
@@ -532,54 +601,57 @@
           <pre id="output">Click "Send Query" to see the returned JSON.</pre>
         </div>
 
+        <div id="tab-query" class="tab-content">
+          <div class="doc-section">
+            <h3>Product API — <code>POST /query</code></h3>
+            <p>The same Orca, exposed as a <strong>stable typed API</strong>. Front ends read business fields — <code>ytw</code>, <code>duration</code>, <code>rating</code> — and never need to know which internal tool ran or how it labelled things. Single-bond lookups come back normalized as <code>bond_analytics</code> (clean numerics + source lineage + a one-line summary); everything else is wrapped as <code>raw</code>, so the response is always valid.</p>
+          </div>
+          <label for="queryApiInput">Bond question</label>
+          <textarea id="queryApiInput">Give me analytics for ISIN US168863CE60</textarea>
+          <div class="preset-row">
+            <button class="secondary preset-q">Give me analytics for ISIN US168863CE60</button>
+            <button class="secondary preset-q">What is the yield on ISIN US168863CF36?</button>
+          </div>
+          <div class="actions">
+            <button id="sendQueryApi">Query Product API</button>
+            <button class="secondary" id="copyQueryCurl">Copy cURL</button>
+          </div>
+          <div id="queryApiOut">
+            <div class="empty-table">Ask about a single bond to see the normalized <code>bond_analytics</code> envelope — clean numerics, source lineage, and a one-line summary.</div>
+          </div>
+        </div>
+
         <div id="tab-docs" class="tab-content">
           <div class="doc-section">
-            <h3>Standardized Display Blocks</h3>
-            <p>Orca uses a "Semantic Intent" approach. Instead of your app needing to know how to parse complex bond objects or database tables, Orca returns <strong>standardized display blocks</strong> that your app can render generically.</p>
-            
-            <div class="doc-section">
-              <h3>1. Request Display Blocks</h3>
-              <p>When calling the <code>/call</code> endpoint, set <code>include_display: true</code> in your request. This tells Orca to enrich the response with UI-ready blocks.</p>
-              <div class="code-block">
-{
-  "tool": "orca_query",
-  "args": { "query": "..." },
-  "include_display": true
-}
-              </div>
+            <h3>Why this keeps working with zero effort from you</h3>
+            <p>Orca sends <strong>finished pieces</strong> — a chart, a table, a fact sheet — already styled in your colours. Your page just shows whatever arrives.</p>
+            <div class="schema">
+              <div><strong>You never maintain charts.</strong> New data, new question types, new analytics show up here automatically. Nothing to rebuild.</div>
+              <div><strong>It's always your brand.</strong> Orca sends a theme with every response, so charts and tables render in your colours — not ours.</div>
+              <div><strong>It costs nothing to stay current.</strong> As the analytics improve, this page improves the same day — no developer, no update.</div>
             </div>
+            <p class="note">You're not building a dashboard. You're plugging into a brain that keeps getting smarter.</p>
+          </div>
 
-            <div class="doc-section">
-              <h3>2. Inspect the Response</h3>
-              <p>The response now includes a <code>display</code> object containing <code>blocks</code>. Each block has a <code>type</code> (like <em>factsheet</em>, <em>table</em>, or <em>chart</em>) and a <code>title</code>.</p>
-              <div class="code-block">
+          <div class="doc-section">
+            <h3>For the builder: how the response is shaped</h3>
+            <p>Call <code>/call</code> with <code>include_display: true</code>. Orca returns a <code>display</code> object with a <code>theme</code> and an array of <code>blocks</code>. You render blocks by <em>type</em> — so a new Orca tool that returns a <code>chart</code> renders here for free.</p>
+            <div class="code-block">
 "display": {
+  "theme": {
+    "brand":   "#21315c",
+    "accent":  "#c8102e",
+    "palette": ["#21315c", "#c8102e", "..."]
+  },
   "blocks": [
-    {
-      "type": "factsheet",
-      "title": "Bond Details",
-      "rows": [ { "label": "ISIN", "value": "..." } ]
-    }
+    { "type": "chart", "chart_type": "pie", "title": "Country Exposure",
+      "data": [ { "label": "Brazil", "value": 18.2 } ] },
+    { "type": "factsheet", "title": "Bond Details",
+      "rows": [ { "label": "ISIN", "value": "..." } ] }
   ]
 }
-              </div>
             </div>
-
-            <div class="doc-section">
-              <h3>3. Render Components (Not Tools)</h3>
-              <p>Your app renders <strong>Components</strong> (like <em>table</em> or <em>chart</em>) rather than <strong>Tools</strong>. This is the "magic": if Orca adds a new tool tomorrow (e.g. <code>get_risk_scores</code>), and that tool returns a <em>table</em>, your app will display it automatically because it already knows how to render tables.</p>
-              <div class="code-block">
-// Generic: This handles 1,000 different tools 
-// as long as they return a 'table' block.
-function renderBlock(block) {
-  if (block.type === 'table') renderTable(block);
-  else if (block.type === 'factsheet') renderFactsheet(block);
-  else if (block.type === 'chart') renderChart(block);
-}
-              </div>
-            </div>
-
-            <p class="note">This approach ensures that your marketing dashboard stays synchronized with the latest bond analytics and portfolio models without constant frontend maintenance.</p>
+            <p class="note">The <code>theme</code> follows the <code>client_id</code> you send — Orca looks the brand up centrally, so the <strong>same page renders in a different team's colours just by changing <code>client_id</code></strong>. Want to force a specific look regardless? Set <code>HOST_THEME</code> at the top of the script — your colours always win.</p>
           </div>
         </div>
       </div>
@@ -614,22 +686,90 @@ function renderBlock(block) {
 
   <script>
     const ENDPOINT = "https://orca-mcp.x-trillion.com/call";
+
+    // ── Branding ────────────────────────────────────────────────
+    // Orca sends a `theme` in its response (display.theme), resolved
+    // centrally from the client_id you pass — so the same page renders
+    // in a different team's colours just by changing the client.
+    // To force your own brand regardless of what Orca sends, fill in
+    // HOST_THEME below — your values always win.
+    const HOST_THEME = {
+      // brand:   "#0a3d62",
+      // accent:  "#e58e26",
+      // palette: ["#0a3d62", "#e58e26", "#60a3bc", "#82589f"],
+    };
+
+    // Fallback only — Orca's display.theme (resolved from media_mcp by
+    // client_id) overrides this. Compliant Guinness chart series order:
+    // Blue, Light Blue, Teal, Warm Grey, Red (source: presentation_mcp
+    // brand guidelines / audit.py EXPECTED_SCHEME).
+    const DEFAULT_PALETTE = ['#236192', '#9DB9D5', '#6BBBAE', '#D6D2C4', '#C8102E', '#21315C', '#42A7CE', '#2E655C'];
+    let chartPalette = DEFAULT_PALETTE.slice();
+
+    function applyTheme(theme) {
+      // precedence: HOST_THEME (yours) > orca theme > CSS :root defaults
+      const t = Object.assign({}, theme || {}, HOST_THEME);
+      const root = document.documentElement.style;
+      const cssMap = {
+        brand: '--brand', accent: '--accent', ink: '--ink',
+        muted: '--muted', line: '--line', surface: '--panel', background: '--bg'
+      };
+      for (const [key, cssVar] of Object.entries(cssMap)) {
+        if (t[key]) root.setProperty(cssVar, t[key]);
+      }
+      if (Array.isArray(t.palette) && t.palette.length) {
+        chartPalette = t.palette;
+      } else if (t.brand || t.accent) {
+        chartPalette = [t.brand || DEFAULT_PALETTE[0], t.accent || DEFAULT_PALETTE[1], ...DEFAULT_PALETTE.slice(2)];
+      }
+      if (t.font_family) document.body.style.fontFamily = t.font_family;
+    }
     const sendButton = document.getElementById("send");
     const copyButton = document.getElementById("copyCurl");
     const queryInput = document.getElementById("query");
     const clientInput = document.getElementById("clientId");
     const emailInput = document.getElementById("email");
+    const asOfInput = document.getElementById("asOf");
     const output = document.getElementById("output");
     const tables = document.getElementById("tables");
     const requestShape = document.getElementById("requestShape");
 
+    // ── Per-site config (derived from the subdomain) ─────────────
+    // The same file serves every marketing team. tom.x-trillion.com
+    // self-configures for Tom/Guinness; sienna.x-trillion.com for
+    // Sienna — no code change, just the hostname. client_id drives
+    // the brand theme Orca sends back (looked up centrally).
+    const SITE_CONFIG = {
+      tom:    { label: "Tom",    client_id: "guinness" },
+      sienna: { label: "Sienna", client_id: "sienna" },
+      _default: { label: "you", client_id: "guinness" }
+    };
+
+    function currentSite() {
+      const sub = (location.hostname.split(".")[0] || "").toLowerCase();
+      return SITE_CONFIG[sub] || SITE_CONFIG._default;
+    }
+
+    const SITE = currentSite();
+
+    // Prior month-end as YYYY-MM-DD (day 0 of this month = last day of previous month)
+    function priorMonthEndISO() {
+      const now = new Date();
+      const d = new Date(now.getFullYear(), now.getMonth(), 0);
+      const pad = (n) => String(n).padStart(2, "0");
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    }
+
     function buildPayload() {
+      const args = {
+        query: queryInput.value.trim(),
+        client_id: clientInput.value.trim() || SITE.client_id
+      };
+      const asOf = asOfInput.value.trim();
+      if (asOf) args.as_of = asOf; // valuation date, usually prior month-end
       return {
         tool: "orca_query",
-        args: {
-          query: queryInput.value.trim(),
-          client_id: clientInput.value.trim() || "guinness"
-        },
+        args: args,
         include_display: true
       };
     }
@@ -754,10 +894,7 @@ function renderBlock(block) {
             datasets: [{
               label: block.title || "",
               data: values,
-              backgroundColor: [
-                '#21315c', '#c8102e', '#5e687a', '#d8dee9', 
-                '#4a5568', '#718096', '#a0aec0', '#e2e8f0'
-              ],
+              backgroundColor: values.map((_, i) => chartPalette[i % chartPalette.length]),
               borderWidth: 1
             }]
           },
@@ -881,6 +1018,7 @@ function renderBlock(block) {
     function renderTables(response) {
       // 1. Prioritize standardized display blocks (semantic intent)
       if (response && response.display) {
+        applyTheme(response.display.theme);
         tables.innerHTML = renderDisplayBlocks(response.display);
         processPendingCharts();
         return;
@@ -988,8 +1126,14 @@ function renderBlock(block) {
 
     queryInput.addEventListener("input", updateRequestShape);
     clientInput.addEventListener("input", updateRequestShape);
+    asOfInput.addEventListener("input", updateRequestShape);
     sendButton.addEventListener("click", sendQuery);
     copyButton.addEventListener("click", copyCurl);
+
+    document.getElementById("priorMonthEnd").addEventListener("click", () => {
+      asOfInput.value = priorMonthEndISO();
+      updateRequestShape();
+    });
     
     document.getElementById("discover").addEventListener("click", () => {
       // Clear input and show discovering state
@@ -1035,6 +1179,123 @@ function renderBlock(block) {
       }
     }
 
+    // ── Product API (/query) demo — typed bond_analytics envelope ──
+    // Separate from the display-blocks demo above: this calls POST /query
+    // (no include_display) and renders the stable orca.v1 envelope.
+    const QUERY_ENDPOINT = "https://orca-mcp.x-trillion.com/query";
+    const queryApiInput = document.getElementById("queryApiInput");
+    const queryApiOut = document.getElementById("queryApiOut");
+    const sendQueryApiBtn = document.getElementById("sendQueryApi");
+
+    function queryApiPayload() {
+      return {
+        query: queryApiInput.value.trim(),
+        client_id: clientInput.value.trim() || SITE.client_id
+      };
+    }
+
+    function lineageStrip(env) {
+      const m = env.meta || {};
+      const chips = [
+        ["result_type", env.result_type],
+        ["schema", env.schema_version],
+        ["source", m.source_service],
+        ["engine", m.calculation_engine],
+        ["as of", m.as_of],
+        ["status", m.normalization_status]
+      ].filter(([, v]) => v !== null && v !== undefined && v !== "");
+      return `<div class="factsheet">${chips.map(([k, v]) =>
+        `<div class="fact-row"><div class="fact-label">${escapeHtml(k)}</div><div class="fact-value">${escapeHtml(v)}</div></div>`).join("")}</div>`;
+    }
+
+    function renderQueryEnvelope(env) {
+      if (!env || typeof env !== "object") {
+        queryApiOut.innerHTML = '<div class="empty-table">No response.</div>';
+        return;
+      }
+      if (env.ok === false) {
+        const msg = (env.error && env.error.message) || "Request failed.";
+        queryApiOut.innerHTML = `<div class="table-title">Error</div><div class="empty-table">${escapeHtml(msg)}</div>`;
+        return;
+      }
+      let html = "";
+      if (env.summary) html += `<div class="block-text">${escapeHtml(env.summary)}</div>`;
+      html += `<div class="table-title">Envelope</div>` + lineageStrip(env);
+
+      if (env.result_type === "bond_analytics") {
+        const e = env.entity || {};
+        const d = env.data || {};
+        const unit = (v, u) => (v === null || v === undefined) ? null : `${v}${u}`;
+        const ent = [
+          ["ISIN", e.isin], ["Ticker", e.ticker], ["Description", e.description],
+          ["Country", e.country], ["Maturity", e.maturity_date]
+        ];
+        const dat = [
+          ["Price", d.price], ["Yield to worst", unit(d.ytw, "%")], ["Spread", unit(d.spread_bp, "bp")],
+          ["Duration", unit(d.duration, "y")], ["Coupon", unit(d.coupon, "%")], ["Rating", d.rating],
+          ["Cheap/rich notches", d.rating_notches], ["Expected return", unit(d.expected_return, "%")],
+          ["Predicted spread", unit(d.predicted_spread_bp, "bp")], ["NFA stars", d.nfa_stars],
+          ["Issuer type", d.issuer_type], ["Currency", d.currency]
+        ];
+        html += `<div class="table-title">Entity</div><div class="factsheet">${factsheetRows(ent)}</div>`;
+        html += `<div class="table-title">Analytics (bond_analytics)</div><div class="factsheet">${factsheetRows(dat)}</div>`;
+      } else {
+        const warn = (env.warnings && env.warnings[0] && env.warnings[0].message) || "Not normalized into a product type.";
+        html += `<div class="empty-table">${escapeHtml(warn)} See the full envelope below.</div>`;
+      }
+      html += `<div class="table-title">Raw envelope</div><pre>${escapeHtml(JSON.stringify(env, null, 2))}</pre>`;
+      queryApiOut.innerHTML = html;
+    }
+
+    async function sendProductQuery() {
+      const payload = queryApiPayload();
+      if (!payload.query) { queryApiOut.innerHTML = '<div class="empty-table">Enter a bond question first.</div>'; return; }
+      sendQueryApiBtn.disabled = true;
+      queryApiOut.innerHTML = '<div class="empty-table">Loading…</div>';
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000);
+      try {
+        const res = await fetch(QUERY_ENDPOINT, {
+          method: "POST", headers: buildHeaders(),
+          body: JSON.stringify(payload), signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        const env = await res.json();
+        renderQueryEnvelope(env);
+      } catch (err) {
+        clearTimeout(timeoutId);
+        const isTimeout = err.name === 'AbortError';
+        queryApiOut.innerHTML = `<div class="empty-table">${isTimeout ? 'Request timed out after 60s.' : 'Request failed: ' + escapeHtml(err.message)}</div>`;
+      } finally {
+        sendQueryApiBtn.disabled = false;
+      }
+    }
+
+    async function copyQueryCurl() {
+      const payload = JSON.stringify(queryApiPayload());
+      const email = emailInput.value.trim();
+      const emailHeader = email ? ` \\\n  -H 'x-user-email: ${email}'` : "";
+      const curl = `curl -sS '${QUERY_ENDPOINT}' \\\n  -H 'Content-Type: application/json'${emailHeader} \\\n  -d '${payload}'`;
+      await navigator.clipboard.writeText(curl);
+      const b = document.getElementById("copyQueryCurl");
+      b.textContent = "Copied"; setTimeout(() => { b.textContent = "Copy cURL"; }, 1200);
+    }
+
+    sendQueryApiBtn.addEventListener("click", sendProductQuery);
+    document.getElementById("copyQueryCurl").addEventListener("click", copyQueryCurl);
+    document.querySelectorAll(".preset-q").forEach((button) => {
+      button.addEventListener("click", () => { queryApiInput.value = button.textContent; });
+    });
+
+    // Subdomain-driven defaults (tom.x-trillion.com → Tom/guinness, etc.)
+    clientInput.value = SITE.client_id;
+    asOfInput.value = priorMonthEndISO();
+    emailInput.placeholder = `${SITE.label.toLowerCase()}@example.com`;
+    document.querySelectorAll("[data-site-label]").forEach((el) => {
+      el.textContent = el.getAttribute("data-site-label").replace("{label}", SITE.label);
+    });
+
+    applyTheme({}); // apply HOST_THEME override (if any) on load
     updateRequestShape();
   </script>
 </body>
