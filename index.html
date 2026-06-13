@@ -827,9 +827,16 @@ function renderBlock(block) {
       }
 
       // 2. Fallback to manual rendering (backward compatibility)
-      const data = response && response.data ? response.data : response;
+      // Be resilient: orca_query often wraps its payload in a 'data' key.
+      // If we see double-wrapping (response.data.data), unwrap it.
+      let data = response && response.data ? response.data : response;
+      if (data && data.data && (data.routing || data.meta)) {
+          data = data.data;
+      }
+      
       const summary = data && data.summary;
       const allocation = data && data.allocation ? data.allocation : {};
+      
       const html = [
         bondRows(data),
         metricRows(summary),
