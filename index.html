@@ -921,10 +921,33 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
     // self-configures for Tom/Guinness; sienna.x-trillion.com for
     // Sienna — no code change, just the hostname. client_id drives
     // the brand theme Orca sends back (looked up centrally).
+    //
+    // Each site carries its own 6-question dashboard set. Every question
+    // reliably returns Orca's full portfolio payload; the per-cell `pick`
+    // selects ONE slice so the six widgets are distinct, not six copies of
+    // the same dashboard. (Orca returns the whole dashboard for any portfolio
+    // query today — see backlog #1647 — so we compute once and slice client-side.)
+    const DASH_GUINNESS = [
+      { q: "Largest country exposures in wnbf",            pick: { block: "Country Allocation", as: "chart", title: "Country exposure" } },
+      { q: "What is the largest holding in wnbf?",         pick: { block: "Country Allocation", as: "table", title: "Country weights" } },
+      { q: "What is the average credit rating of wnbf?",   pick: { block: "Rating Allocation",  as: "chart", title: "Credit rating mix" } },
+      { q: "How many holdings are in wnbf?",               pick: { block: "Rating Allocation",  as: "table", title: "Rating breakdown" } },
+      { q: "What is the duration of wnbf?",                pick: { block: "Portfolio Snapshot", metrics: ["Yield", "Duration"], title: "Yield & duration" } },
+      { q: "How much cash is in wnbf?",                    pick: { block: "Portfolio Snapshot", metrics: ["Cash %"], title: "Cash position" } }
+    ];
+    const DASH_SIENNA = [
+      { q: "Largest country exposures in the fund",          pick: { block: "Country Allocation", as: "chart", title: "Country exposure" } },
+      { q: "What is the largest holding in the fund?",       pick: { block: "Country Allocation", as: "table", title: "Country weights" } },
+      { q: "What is the average credit rating of the fund?", pick: { block: "Rating Allocation",  as: "chart", title: "Credit rating mix" } },
+      { q: "How many holdings are in the fund?",             pick: { block: "Rating Allocation",  as: "table", title: "Rating breakdown" } },
+      { q: "What is the duration of the fund?",              pick: { block: "Portfolio Snapshot", metrics: ["Yield", "Duration"], title: "Yield & duration" } },
+      { q: "How much cash is in the fund?",                  pick: { block: "Portfolio Snapshot", metrics: ["Cash %"], title: "Cash position" } }
+    ];
+
     const SITE_CONFIG = {
-      tom:    { label: "Tom",    client_id: "guinness" },
-      sienna: { label: "Sienna", client_id: "sienna" },
-      _default: { label: "you", client_id: "guinness" }
+      tom:    { label: "Tom",    client_id: "guinness", dash: DASH_GUINNESS },
+      sienna: { label: "Sienna", client_id: "sienna",   dash: DASH_SIENNA },
+      _default: { label: "you",  client_id: "guinness", dash: DASH_GUINNESS }
     };
 
     function currentSite() {
@@ -1476,30 +1499,46 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
     });
 
     // ── Dashboard mode — six editable questions → an auto-built layout ──
-    // Same Orca call as a single query, fanned out across six panels. Proves
-    // the whole idea: a branded dashboard is just six questions, no charts built.
-    const DEFAULT_DASH = [
-      "Largest country exposures in wnbf",
-      "How much cash is in wnbf?",
-      "What is the average credit rating of wnbf?",
-      "Which bonds are cheap or rich?",
-      "Rating allocation for wnbf",
-      "Summarize the portfolio positioning in client-friendly language"
-    ];
+    // Each question returns Orca's full portfolio payload; the per-cell `pick`
+    // (from SITE.dash) selects ONE slice so the six widgets are distinct, not
+    // six copies of the same dashboard.
+    let dashPicks = [];
 
     function buildDashQueries() {
-      document.getElementById("dashQueryList").innerHTML = DEFAULT_DASH.map((q, i) => `
+      dashPicks = SITE.dash.map(d => d.pick);
+      document.getElementById("dashQueryList").innerHTML = SITE.dash.map((d, i) => `
         <div class="dash-row">
           <div class="dash-num">${i + 1}</div>
-          <textarea class="dash-q" rows="2">${escapeHtml(q)}</textarea>
+          <textarea class="dash-q" rows="2">${escapeHtml(d.q)}</textarea>
         </div>`).join("");
     }
 
-    function renderDashboardCell(bodyEl, response) {
-      // Same logic as renderTables, inline, targeting one cell.
+    // Filter a display to just the block(s) a cell wants. Falls back to the
+    // whole display if the pick matches nothing (e.g. Tom reworded the question).
+    function applyPick(display, pick) {
+      if (!pick || !display || !Array.isArray(display.blocks)) return display;
+      let out = display.blocks.filter(b =>
+        (!pick.block || (b.title || "").toLowerCase().includes(pick.block.toLowerCase())) &&
+        (!pick.as || b.type === pick.as)
+      );
+      if (pick.metrics) {
+        out = out.map(b => b.type === "metric_strip"
+          ? Object.assign({}, b, { metrics: (b.metrics || []).filter(m => pick.metrics.includes(m.label)) })
+          : b);
+      }
+      if (!out.length) return display; // nothing matched → show the whole thing
+      if (pick.title) { // relabel so two slices of the same block read distinctly
+        out = out.slice();
+        out[0] = Object.assign({}, out[0], { title: pick.title });
+      }
+      return Object.assign({}, display, { blocks: out });
+    }
+
+    function renderDashboardCell(bodyEl, response, pick) {
+      // Same logic as renderTables, inline, targeting one cell, sliced by pick.
       if (response && response.display && Array.isArray(response.display.blocks) && response.display.blocks.length) {
         if (typeof applyTheme === "function") applyTheme(response.display.theme);
-        bodyEl.innerHTML = renderDisplayBlocks(response.display);
+        bodyEl.innerHTML = renderDisplayBlocks(applyPick(response.display, pick));
         processPendingCharts();
         return;
       }
@@ -1553,7 +1592,7 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
             signal: controller.signal
           });
           clearTimeout(timeoutId);
-          renderDashboardCell(bodies[i], await res.json());
+          renderDashboardCell(bodies[i], await res.json(), dashPicks[i]);
         } catch (err) {
           clearTimeout(timeoutId);
           bodies[i].innerHTML = `<div class="empty-table">${err.name === "AbortError" ? "Timed out after 60s." : "Request failed."}</div>`;
