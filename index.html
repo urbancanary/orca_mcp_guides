@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Orca Query Demo</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     :root {
       --ink: #172033;
@@ -274,6 +275,17 @@
       color: var(--ink);
       white-space: pre-wrap;
       margin-bottom: 16px;
+    }
+
+    /* Charts */
+    .chart-container {
+      padding: 16px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      margin-bottom: 24px;
+      height: 320px;
+      position: relative;
     }
 
     /* Discovery Cards */
@@ -562,6 +574,7 @@
 function renderBlock(block) {
   if (block.type === 'table') renderTable(block);
   else if (block.type === 'factsheet') renderFactsheet(block);
+  else if (block.type === 'chart') renderChart(block);
 }
               </div>
             </div>
@@ -646,10 +659,14 @@ function renderBlock(block) {
       return escapeHtml(value);
     }
 
+    let pendingCharts = [];
+
     function renderDisplayBlocks(display) {
       if (!display || !Array.isArray(display.blocks)) return "";
       
-      return display.blocks.map(block => {
+      pendingCharts = []; // Reset
+      
+      return display.blocks.map((block, idx) => {
         let blockHtml = `<div class="table-title">${escapeHtml(block.title || block.type)}</div>`;
         
         if (block.type === "factsheet") {
@@ -688,7 +705,13 @@ function renderBlock(block) {
           blockHtml += `<div class="block-text">${escapeHtml(block.content)}</div>`;
         }
         else if (block.type === "chart") {
-          blockHtml += `<div class="empty-table">Chart: ${escapeHtml(block.title)} (Rendering logic for charts can be added here)</div>`;
+          const chartId = `chart-${idx}-${Date.now()}`;
+          pendingCharts.push({ id: chartId, block: block });
+          blockHtml += `
+            <div class="chart-container">
+              <canvas id="${chartId}"></canvas>
+            </div>
+          `;
         }
         else if (block.type === "discovery_grid") {
           const cards = (block.items || []).map(item => `
@@ -711,6 +734,42 @@ function renderBlock(block) {
       queryInput.value = text;
       updateRequestShape();
       sendQuery();
+    }
+
+    function processPendingCharts() {
+      if (!window.Chart) return;
+      
+      pendingCharts.forEach(({ id, block }) => {
+        const ctx = document.getElementById(id);
+        if (!ctx) return;
+        
+        const labels = block.data.map(d => d.label);
+        const values = block.data.map(d => d.value);
+        const type = block.chart_type === "pie" ? "pie" : "bar";
+        
+        new Chart(ctx, {
+          type: type,
+          data: {
+            labels: labels,
+            datasets: [{
+              label: block.title || "",
+              data: values,
+              backgroundColor: [
+                '#21315c', '#c8102e', '#5e687a', '#d8dee9', 
+                '#4a5568', '#718096', '#a0aec0', '#e2e8f0'
+              ],
+              borderWidth: 1
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: type === 'pie' ? 'right' : 'top' }
+            }
+          }
+        });
+      });
     }
 
     function metricRows(summary) {
@@ -823,6 +882,7 @@ function renderBlock(block) {
       // 1. Prioritize standardized display blocks (semantic intent)
       if (response && response.display) {
         tables.innerHTML = renderDisplayBlocks(response.display);
+        processPendingCharts();
         return;
       }
 
