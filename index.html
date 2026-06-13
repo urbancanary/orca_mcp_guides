@@ -572,18 +572,23 @@
 
     /* Responses fill the right side: 2 columns, each widget expands to its
        own content (demo — fine if the grid runs off-screen and the page scrolls). */
+    /* Two-column vertical masonry: widgets pack top-to-bottom in 2 balanced
+       columns with no wasted-space gaps; the page flows down. Nothing scrolls
+       inside a widget — content fits by narrowing/expanding — so the layout is
+       PDF-friendly (the output we ultimately replace can't scroll). */
     .dash-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 14px;
-      align-items: start;
+      column-count: 2;
+      column-gap: 14px;
     }
+    .dash-grid > .empty-table { column-span: all; }
 
     .dash-cell {
       border: 1px solid var(--line);
       border-radius: 8px;
       padding: 12px;
       background: #fff;
+      break-inside: avoid;       /* keep a widget whole within a column */
+      margin-bottom: 14px;       /* gap to the widget packed below it */
     }
 
     .dash-cell-q {
@@ -603,13 +608,14 @@
       padding: 8px;
     }
 
-    .dash-cell .table-scroll { margin-bottom: 0; }
+    .dash-cell .table-scroll { margin-bottom: 0; overflow-x: visible; }
+    .dash-cell .table-scroll table { min-width: 0; } /* fit the column; no inner h-scroll competing with the board */
 
     .dash-cell .table-title { margin-top: 0; }
 
     @media (max-width: 860px) {
-      .dash, .dash-grid { grid-template-columns: 1fr; }
-      .dash-grid { height: auto; grid-auto-rows: minmax(220px, auto); }
+      .dash { grid-template-columns: 1fr; }
+      .dash-grid { column-count: 1; }
     }
 
     @media (max-width: 860px) {
@@ -927,7 +933,7 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
     // query today — see backlog #1647 — so we compute once and slice client-side.)
     const DASH_GUINNESS = [
       { q: "Largest country exposures in wnbf",            pick: { block: "Country Allocation", as: "chart", title: "Country exposure" } },
-      { q: "What is the largest holding in wnbf?",         pick: { block: "Country Allocation", as: "table", title: "Country weights" } },
+      { q: "What is the total value of wnbf?",             pick: { block: "Country Allocation", as: "table", title: "Value by country" } },
       { q: "What is the average credit rating of wnbf?",   pick: { block: "Rating Allocation",  as: "chart", title: "Credit rating mix" } },
       { q: "How many holdings are in wnbf?",               pick: { block: "Rating Allocation",  as: "table", title: "Rating breakdown" } },
       { q: "What is the duration of wnbf?",                pick: { block: "Portfolio Snapshot", metrics: ["Yield", "Duration"], title: "Yield & duration" } },
@@ -935,7 +941,7 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
     ];
     const DASH_SIENNA = [
       { q: "Largest country exposures in the fund",          pick: { block: "Country Allocation", as: "chart", title: "Country exposure" } },
-      { q: "What is the largest holding in the fund?",       pick: { block: "Country Allocation", as: "table", title: "Country weights" } },
+      { q: "What is the total value of the fund?",           pick: { block: "Country Allocation", as: "table", title: "Value by country" } },
       { q: "What is the average credit rating of the fund?", pick: { block: "Rating Allocation",  as: "chart", title: "Credit rating mix" } },
       { q: "How many holdings are in the fund?",             pick: { block: "Rating Allocation",  as: "table", title: "Rating breakdown" } },
       { q: "What is the duration of the fund?",              pick: { block: "Portfolio Snapshot", metrics: ["Yield", "Duration"], title: "Yield & duration" } },
@@ -1001,9 +1007,9 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
       const n = parseFloat(s.replace(/[, %]/g, ""));
       if (!/-?\d/.test(s) || !isFinite(n)) return escapeHtml(s); // not numeric
       const lab = (label || "").toLowerCase();
-      const isPct = s.includes("%") || /\b(pct|%|weight|yield)\b/.test(lab);
+      const isPct = s.includes("%") || lab.includes("pct") || lab.includes("%") || lab.includes("weight") || lab.includes("yield");
       if (isPct) return n.toFixed(2) + "%"; // consistent 2dp for all percentages
-      const isMoney = /\b(value|amount|par|notional|mv|nav|cash)\b/.test(lab);
+      const isMoney = /\b(value|amount|par|notional|mv|nav)\b/.test(lab);
       if (isMoney || Math.abs(n) >= 1000) return n.toLocaleString("en-US", { maximumFractionDigits: 0 });
       if (Number.isInteger(n)) return String(n);
       return n.toFixed(2);
@@ -1049,7 +1055,7 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
               <thead><tr><th>Metric</th><th>Value</th></tr></thead>
               <tbody>${(block.metrics || []).map(m => {
                 const val = fmtNumber(m.value, m.label);
-                const unit = (m.unit && !String(m.value).includes(m.unit)) ? escapeHtml(m.unit) : "";
+                const unit = (m.unit && !val.includes(m.unit)) ? escapeHtml(m.unit) : "";
                 return `<tr><td>${escapeHtml(m.label)}</td><td>${val}${unit}</td></tr>`;
               }).join("")}</tbody>
             </table>
@@ -1121,7 +1127,25 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-              legend: { position: type === 'pie' ? 'right' : 'top' }
+              legend: {
+                position: type === 'pie' ? 'right' : 'top',
+                labels: {
+                  // show the % share on each legend entry
+                  generateLabels: function (chart) {
+                    const ds = chart.data.datasets[0];
+                    return chart.data.labels.map((lab, i) => {
+                      const pct = Number(ds.data[i]) || 0; // value is already the % weight (matches the table)
+                      return {
+                        text: `${lab} — ${pct.toFixed(1)}%`,
+                        fillStyle: ds.backgroundColor[i],
+                        strokeStyle: ds.backgroundColor[i],
+                        lineWidth: 0,
+                        index: i
+                      };
+                    });
+                  }
+                }
+              }
             }
           }
         });
