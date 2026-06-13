@@ -932,13 +932,15 @@ function renderBlock(block) {
     copyButton.addEventListener("click", copyCurl);
     
     document.getElementById("discover").addEventListener("click", () => {
-      queryInput.value = "List all available capabilities"; // Descriptive query
+      // Clear input and show discovering state
+      queryInput.value = "List all available capabilities";
+      updateRequestShape();
+      
       const payload = {
         tool: "orca_list_tools",
         args: {},
         include_display: true
       };
-      // Manually trigger the fetch for the special discovery tool
       executeManualPayload(payload);
     });
 
