@@ -42,6 +42,17 @@
       max-width: 1100px;
     }
 
+    /* Embedded in the Orion shell (?orion=true): the shell provides the chrome,
+       so drop the app's own masthead/badge/explainer/endpoint affordance. */
+    body.embedded header,
+    body.embedded .badge,
+    body.embedded details.tldr,
+    body.embedded #endpointLabel,
+    body.embedded .note[data-site-label] {
+      display: none;
+    }
+    body.embedded main { padding-top: 14px; }
+
     header {
       display: flex;
       align-items: flex-start;
@@ -666,7 +677,7 @@
       <div class="panel">
         <h2>Query</h2>
         <p class="note" data-site-label="Recommended endpoint for {label}:">Recommended endpoint for Tom:</p>
-        <code class="url" id="endpointLabel">https://orca-mcp.x-trillion.com/call</code>
+        <code class="url" id="endpointLabel">https://orca.x-trillion.com/call</code>
 
         <label for="query">Question</label>
         <textarea id="query">Summarize the portfolio positioning in client-friendly language.</textarea>
@@ -758,8 +769,9 @@
             <h3>Step 1 — Ask Orca, and ask for display blocks</h3>
             <p>One POST. The only special bit is <code>include_display: true</code> — that tells Orca to return ready-to-draw blocks instead of raw data.</p>
             <div class="code-block">
-const res = await fetch("https://orca-mcp.x-trillion.com/call", {
+const res = await fetch("https://orca.x-trillion.com/call", {
   method: "POST",
+  credentials: "include",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
     tool: "orca_query",
@@ -872,7 +884,16 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
   </main>
 
   <script>
-    const ENDPOINT = "https://orca-mcp.x-trillion.com/call";
+    // ── Orca endpoint (box-ready) ───────────────────────────────
+    // On the Guinness box (behind SSO) — or embedded in the Orion shell —
+    // call the auth-gated public gateway and send the xt_session cookie so
+    // Orca authenticates the user. Standalone/dev falls back to the direct
+    // service (no auth). The internal URL is never the box's public path.
+    const EMBEDDED = new URLSearchParams(location.search).get('orion') === 'true';
+    const ON_BOX = EMBEDDED || /(^|\.)guinness\.x-trillion\.com$/.test(location.hostname);
+    const ORCA_BASE = ON_BOX ? 'https://orca.x-trillion.com' : 'https://orca-mcp.x-trillion.com';
+    const FETCH_CREDS = ON_BOX ? 'include' : 'same-origin';
+    const ENDPOINT = ORCA_BASE + '/call';
 
     // ── Branding ────────────────────────────────────────────────
     // Orca sends a `theme` in its response (display.theme), resolved
@@ -1324,6 +1345,7 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
       try {
         const res = await fetch(ENDPOINT, {
           method: "POST",
+          credentials: FETCH_CREDS,
           headers: buildHeaders(),
           body: JSON.stringify(payload),
           signal: controller.signal
@@ -1413,6 +1435,7 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
       try {
         const res = await fetch(ENDPOINT, {
           method: "POST",
+          credentials: FETCH_CREDS,
           headers: buildHeaders(),
           body: JSON.stringify(payload),
           signal: controller.signal
@@ -1435,7 +1458,7 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
     // ── Product API (/query) demo — typed bond_analytics envelope ──
     // Separate from the display-blocks demo above: this calls POST /query
     // (no include_display) and renders the stable orca.v1 envelope.
-    const QUERY_ENDPOINT = "https://orca-mcp.x-trillion.com/query";
+    const QUERY_ENDPOINT = ORCA_BASE + "/query";
     const queryApiInput = document.getElementById("queryApiInput");
     const queryApiOut = document.getElementById("queryApiOut");
     const sendQueryApiBtn = document.getElementById("sendQueryApi");
@@ -1509,7 +1532,7 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
       const timeoutId = setTimeout(() => controller.abort(), 60000);
       try {
         const res = await fetch(QUERY_ENDPOINT, {
-          method: "POST", headers: buildHeaders(),
+          method: "POST", credentials: FETCH_CREDS, headers: buildHeaders(),
           body: JSON.stringify(payload), signal: controller.signal
         });
         clearTimeout(timeoutId);
@@ -1625,6 +1648,7 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
         try {
           const res = await fetch(ENDPOINT, {
             method: "POST",
+            credentials: FETCH_CREDS,
             headers: buildHeaders(),
             body: JSON.stringify({
               tool: "orca_query",
@@ -1653,6 +1677,12 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
       });
     });
     buildDashQueries();
+
+    // Embedded in the Orion shell → strip the app's own chrome (see CSS).
+    if (EMBEDDED) document.body.classList.add("embedded");
+    // Show the public gateway URL, never the internal service URL.
+    const endpointLabelEl = document.getElementById("endpointLabel");
+    if (endpointLabelEl) endpointLabelEl.textContent = "https://orca.x-trillion.com/call";
 
     // Subdomain-driven defaults (tom.x-trillion.com → Tom/guinness, etc.)
     clientInput.value = SITE.client_id;
