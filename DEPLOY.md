@@ -1,100 +1,115 @@
-# orca_mcp_guides — Deployment notes
+# orca_mcp_guides — Deployment Bible (current ↔ target)
 
-**This repo = "Orca Query Demo" / "Ask Orca" demo (Tom's marketing six-question dashboard).**
-Single self-contained `index.html` (Chart.js + the example queries + the dashboard).
-It is a *static page* that calls the Orca `/call` HTTP API at runtime — no server-side build,
-no secrets in the repo.
+**This is the source of truth for how the "Ask Orca" demo (Tom's six-question dashboard) deploys.**
+It is written as a *split view*: the left of each row is **NOW (verified 2026-06-14)**, the right is
+**TARGET (what we're committing to)**. When NOW ≠ TARGET, §3 is the checklist that closes the gap.
+**Rule: if you change how/where this app deploys, update this file in the same commit so NOW stays true.**
 
----
-
-## 1. Current deploy reality (verified 2026-06-14)
-
-| Fact | Status |
-|---|---|
-| Git remote | **GitHub only** — `github.com/urbancanary/orca_mcp_guides`. No Gitea remote. |
-| On the Hetzner/Coolify box? | **NO.** Not in the `guinness` Gitea org's 11 repos; no `~/Notebooks/hetzner/orca_mcp_guides` working copy. |
-| Railway? | Register lists it as **TBD** (project + domain unconfirmed). Treat as *not confirmed deployed anywhere* until a live URL responds. |
-| `tom.guinnessgi.x-trillion.com` | DNS resolves to the box (178.105.199.104) but **returns an error page** — nothing is serving this app there. |
-| `tom.x-trillion.com` | **Does not resolve** (no DNS record). |
-
-**Consequence:** `git push origin main` publishes to GitHub but **does NOT reach the Hetzner box**.
-There is currently no automated path from this repo to any live host. If you "deployed" by pushing,
-the code is on GitHub and nowhere else.
+The app itself is one self-contained static `index.html` (Chart.js + example queries + the dashboard)
+that calls the Orca `/call` HTTP API at runtime. No server build, no secrets in the repo.
 
 ---
 
-## 2. How apps actually get onto the Hetzner box (the model this repo is NOT yet wired into)
+## 1. Split view — NOW vs TARGET
 
-The box does **not** deploy from GitHub. Authoritative source of truth:
-**`mcp_central/guinness-platform/PLATFORM_MODEL.md`** and **`GUINNESS_DELIVERY_RUNBOOK.md`**.
-Summary of the pipeline used by the 11 live box apps (athena-html-v3, iris, lexa-mcp, jess-video,
-maia-mcp, iona-mcp, georgia, guinness-mcp, presentation-mcp, brian-mcp, orion_v3):
+| Dimension | NOW (verified 2026-06-14) | TARGET (the bible) |
+|---|---|---|
+| **Git remote(s)** | GitHub only: `github.com/urbancanary/orca_mcp_guides` | GitHub `urbancanary/orca_mcp_guides` (dev/vault) **+** Gitea `guinness/orca_mcp_guides` on the box |
+| **Box working copy** | none | `~/Notebooks/hetzner/orca_mcp_guides`, origin = Gitea, edits on branch `active` |
+| **Branch model** | `main` (GitHub) | Box repo: `upstream` / `active` / `guinness` / `original` — **no `main`** (by design); Coolify builds **`guinness`** |
+| **Live host** | none. `tom.guinnessgi.x-trillion.com` → box IP but **error page**; `tom.x-trillion.com` → **no DNS** | `ask.guinness.x-trillion.com` (Traefik host-routed, Let's Encrypt) |
+| **Deploy trigger** | `git push` → GitHub, reaches **nothing live** | push to Gitea `guinness` → **Coolify auto-builds + serves** |
+| **Build** | n/a | Coolify **static app**, NIXPACKS + `python3 -m http.server` (current `Procfile`); healthcheck **off** (python-slim no-curl gotcha) |
+| **Runtime gateway** | works standalone via public `orca-mcp.x-trillion.com` (`credentials:'omit'`) | on-box uses `orca.x-trillion.com` (authenticated, sends `xt_session` cookie); standalone falls back to public — **both already coded in `index.html`** |
+| **On-box auth** | none (public header-auth path) | `xt_session` cookie via the Orca gateway (same SSO as the other box apps) |
+| **In the confidentiality pipeline?** | no | optional — only if Tom/Will get **Gitea read access**; then full `GUINNESS_DELIVERY_RUNBOOK.md` (scrub + leak-gate + storefront) applies |
+| **Status** | **NOT DEPLOYED ANYWHERE** | live + discoverable from the Orion box shell ("Ask Orca" tile) |
+
+**The one-line truth:** `git push origin main` here publishes to GitHub and reaches **no live host**.
+The box does **not** deploy from GitHub — it deploys from **Gitea on the box**, which this repo is not yet wired into.
+
+---
+
+## 2. TARGET architecture (how it *should* flow)
+
+This mirrors the 11 live box apps (athena-html-v3, iris, lexa-mcp, jess-video, maia-mcp, iona-mcp,
+georgia, guinness-mcp, presentation-mcp, brian-mcp, orion_v3). Canonical refs:
+`mcp_central/guinness-platform/PLATFORM_MODEL.md` + `GUINNESS_DELIVERY_RUNBOOK.md` +
+`~/Notebooks/hetzner/README.BOX_TREES.md`.
 
 ```
-GitHub  urbancanary/<app>  (the development copy, what you edit in mcp_central/<app>)
+GitHub  urbancanary/orca_mcp_guides         ← dev copy (mcp_central/orca_mcp_guides, you edit here)
    │
-   │  cron on the box: /root/sync_guinness_upstream.sh  (every ~30 min)
-   │  pushes GitHub main → Gitea branch `upstream`  (never touches `guinness`)
+   │  cron on box: /root/sync_guinness_upstream.sh (~30 min)
+   │  GitHub main → Gitea branch `upstream`  (never touches `guinness`)
    ▼
-Gitea (ON the box)  gitea.guinness.x-trillion.com  →  org `guinness`  →  repo <app>
-   branches (NO `main`, by design):
-     upstream  = mirror of GitHub main (auto-synced)
-     active    = what WE curate to ship (vendor decision)
-     guinness  = what the client has signed off  ← Coolify builds THIS branch
-     original  = frozen sanitised first-delivery snapshot
+Gitea ON THE BOX  gitea.guinness.x-trillion.com → org `guinness` → repo orca_mcp_guides
+   upstream = mirror of GitHub main
+   active   = what we curate to ship           ← box edits land here (~/Notebooks/hetzner/orca_mcp_guides)
+   guinness = client-signed-off, DEFAULT        ← Coolify builds THIS
+   original = frozen first-delivery snapshot
    │
-   │  Coolify (http://178.105.199.104:8000) builds the `guinness` branch on push
+   │  Coolify (178.105.199.104:8000) builds `guinness` on push
    ▼
-Live at  <app>.guinness.x-trillion.com   (Traefik routes by host, Let's Encrypt TLS)
+Live   ask.guinness.x-trillion.com   (Traefik routes by host, Let's Encrypt TLS)
+   │
+   ▼
+Orion box shell  →  "Ask Orca" tile iframes  ask.guinness.x-trillion.com?orion=true
 ```
 
-- The local box working copies live at **`~/Notebooks/hetzner/<app>`** (origin = Gitea, NOT GitHub).
-  Edits there go on `active`, push to Gitea → Coolify redeploys. See `~/Notebooks/hetzner/README.BOX_TREES.md`.
-- For a confidentiality-gated *client delivery* (scrub history, leak-gate, fresh storefront repo),
-  follow the full `GUINNESS_DELIVERY_RUNBOOK.md`. That is heavier than a plain box deploy and is only
-  needed when Tom/Will get read access to the Gitea repo.
+---
+
+## 3. Gap-closing checklist (NOW → TARGET) — tick these to deploy
+
+> One-time provisioning. Follow in order; each is a USER (Coolify/Gitea UI or box SSH) or AGENT step.
+> Detailed recipe + API shapes: `GUINNESS_DELIVERY_RUNBOOK.md` §4–5 and the Coolify deploy memory.
+
+- [ ] **Decide the host.** Confirm `ask.guinness.x-trillion.com` (the `ask-orca` tile concept already
+      exists in the Orion box shell). ⚠ `index.html` `ON_BOX` regex matches `guinness.x-trillion.com`
+      but **NOT** `guinness*gi*.x-trillion.com` — pick a `*.guinness.x-trillion.com` host **or** widen the regex.
+- [ ] **Create Gitea repo** `guinness/orca_mcp_guides` (private) on the box.
+- [ ] **Add box working copy** `~/Notebooks/hetzner/orca_mcp_guides` tracking Gitea, branch `active`
+      (seed from the current GitHub tree); create `guinness` from `active` once curated.
+- [ ] **Wire sync** — add this repo to `/root/sync_guinness_upstream.sh` (GitHub→Gitea `upstream`),
+      **or** for a page this small just push the curated tree to `guinness` by hand.
+- [ ] **Create the Coolify app** → source = Gitea `guinness/orca_mcp_guides`, branch `guinness`,
+      static build (NIXPACKS `python3 -m http.server`), healthcheck **off**, FQDN `ask.guinness.x-trillion.com`.
+- [ ] **DNS/TLS** — the `*.guinness.x-trillion.com` wildcard already points at the box; confirm the host
+      resolves and Traefik issues a cert.
+- [ ] **Smoke test** in a browser with the box session: panels fill, Brief↔Enhanced toggle flips,
+      `answer_mode` answers present.
+- [ ] **Wire the Orion tile** ("Ask Orca" sidebar entry → `ask.guinness.x-trillion.com?orion=true`).
+- [ ] **Update §1 NOW column + the CLAUDE.md deploy register row** for orca_mcp_guides.
 
 ---
 
-## 3. To put THIS app on the box (if that's the intent)
+## 4. Invariants — the rules we follow (don't relitigate these)
 
-Decide first **which front door** it should use, then provision. Minimum steps (mirrors the
-openfigi/iris recipe in the runbook + the Coolify deploy memory):
-
-1. **Pick the host + tenant model.** Likely `ask.guinness.x-trillion.com` (there is already an
-   `ask-orca` tile concept in the Orion box shell). NOTE the on-box detection in `index.html`
-   (`ON_BOX` regex matches `guinness.x-trillion.com`, **not** `guinness*gi*.x-trillion.com`) — pick
-   the host to match, or widen the regex.
-2. **Create the Gitea repo** `guinness/orca_mcp_guides` (private) and add a `~/Notebooks/hetzner/orca_mcp_guides`
-   working copy tracking it (branch `guinness`).
-3. **Wire the sync** (add this repo to `/root/sync_guinness_upstream.sh`) **or** push the curated tree
-   to the `guinness` branch manually for a static page this small.
-4. **Create a Coolify app** pointing at the Gitea `guinness` branch. This is a **static HTML** app
-   (NIXPACKS + `python3 -m http.server`, per the current `Procfile`) — no Dockerfile today; healthcheck
-   off (the python-slim no-curl gotcha). Serve on the chosen subdomain.
-5. **DNS:** the `*.guinness.x-trillion.com` wildcard already points at the box; just confirm the host
-   resolves and Traefik issues a cert.
-6. **Runtime API:** the page calls Orca over the gateway. On-box it should use `orca.x-trillion.com`
-   (authenticated, sends the `xt_session` cookie); standalone/dev it falls back to the public
-   `orca-mcp.x-trillion.com` (header-auth, `credentials:'omit'`). Both paths already exist in `index.html`.
-
-### Confidentiality gotcha if this is ever client-delivered
-`index.html` references **`orca-mcp.x-trillion.com`**, which is on the runbook **denylist** (§3.1 —
-the internal host, distinct from the allowed `orca.x-trillion.com`). A plain box deploy for internal
-use is fine, but a *client-facing* delivery via the storefront pipeline must scrub that host first or
-`leak_gate.sh` will (correctly) fail.
+1. **The box deploys from Gitea, never GitHub.** Pushing to GitHub is necessary (dev/vault) but never sufficient.
+2. **No `main` on the box copy** — the `upstream/active/guinness/original` names are a forcing function so
+   muscle-memory `git checkout/push main` can't push the wrong tree to the wrong place.
+3. **Coolify builds the `guinness` branch.** `active` is staging; `guinness` is live.
+4. **Edit the right copy:** app dev → `mcp_central/orca_mcp_guides` (GitHub); box changes →
+   `~/Notebooks/hetzner/orca_mcp_guides` (Gitea). Never cross them.
+5. **Runtime gateway is host-driven, already coded:** on-box → `orca.x-trillion.com` (+cookie);
+   standalone → `orca-mcp.x-trillion.com` (`credentials:'omit'`). Don't hardcode a single base.
+6. **Confidentiality (only if Tom/Will get Gitea read access):** `index.html` references
+   `orca-mcp.x-trillion.com`, which is on the runbook **denylist** (§3.1 — the internal host, distinct from
+   the allowed `orca.x-trillion.com`). Internal box use is fine; a *client-readable* storefront delivery
+   must scrub it first or `leak_gate.sh` will (correctly) fail. Never hand Tom internal Gitea/Railway/Worker URLs.
 
 ---
 
-## 4. Local dev
+## 5. Local dev
 
 ```bash
 cd orca_mcp_guides && python3 -m http.server 8777
-# open http://localhost:8777/index.html        → public gateway path (orca-mcp.x-trillion.com, creds omit)
-# open http://localhost:8777/index.html?orion=true → on-box path (orca.x-trillion.com, needs a session → 401 at localhost)
+# http://localhost:8777/index.html            → public gateway (orca-mcp.x-trillion.com, creds omit)
+# http://localhost:8777/index.html?orion=true → on-box path (orca.x-trillion.com, 401 at localhost — no session)
 ```
-Append a cache-buster (`?cb=123`) when testing edits — the page is aggressively cached.
+Append `?cb=<n>` when testing edits — the page is aggressively cached.
 
 ---
 
-*Last verified 2026-06-14. If you change where/how this app deploys, update this file in the same commit.*
+*Bible last verified 2026-06-14. NOW column is only trustworthy if kept in lockstep with reality —
+update it in the same commit as any deploy change.*
