@@ -14,9 +14,9 @@ that calls the Orca `/call` HTTP API at runtime. No server build, no secrets in 
 
 | Dimension | NOW (verified 2026-06-14) | TARGET (the bible) |
 |---|---|---|
-| **Git remote(s)** | GitHub only: `github.com/urbancanary/orca_mcp_guides` | GitHub `urbancanary/orca_mcp_guides` (dev/vault) **+** Gitea `guinness/orca_mcp_guides` on the box |
-| **Box working copy** | ✅ **exists** at `~/Notebooks/hetzner/orca_mcp_guides` (seeded from GitHub `5faa1f2`), origin → Gitea, **not yet pushed** (Gitea repo pending) | `~/Notebooks/hetzner/orca_mcp_guides`, origin = Gitea, edits on branch `active` |
-| **Branch model** | GitHub: `main`. Box copy: ✅ `upstream`/`active`/`guinness`/`original` created (no `main`), HEAD on `active` | Box repo: `upstream` / `active` / `guinness` / `original` — **no `main`** (by design); Coolify builds **`guinness`** |
+| **Git remote(s)** | ✅ GitHub `urbancanary/orca_mcp_guides` **+** Gitea `guinness/orca_mcp_guides` (created + pushed 2026-06-14) | GitHub `urbancanary/orca_mcp_guides` (dev/vault) **+** Gitea `guinness/orca_mcp_guides` on the box |
+| **Box working copy** | ✅ `~/Notebooks/hetzner/orca_mcp_guides` (seeded from GitHub `5faa1f2`), **pushed to Gitea** | `~/Notebooks/hetzner/orca_mcp_guides`, origin = Gitea, edits on branch `active` |
+| **Branch model** | ✅ Gitea has `upstream`/`active`/`guinness`/`original` (no `main`); **`guinness` is the default branch** (Coolify build target) | Box repo: `upstream` / `active` / `guinness` / `original` — **no `main`** (by design); Coolify builds **`guinness`** |
 | **Live host** | none. `tom.guinnessgi.x-trillion.com` → box IP but **error page**; `tom.x-trillion.com` → **no DNS** | `ask.guinness.x-trillion.com` (Traefik host-routed, Let's Encrypt) |
 | **Deploy trigger** | `git push` → GitHub, reaches **nothing live** | push to Gitea `guinness` → **Coolify auto-builds + serves** |
 | **Build** | n/a | Coolify **static app**, NIXPACKS + `python3 -m http.server` (current `Procfile`); healthcheck **off** (python-slim no-curl gotcha) |
@@ -71,9 +71,9 @@ Orion box shell  →  "Ask Orca" tile iframes  ask.guinness.x-trillion.com?orion
       GitHub `5faa1f2`; branches `upstream`/`active`/`guinness`/`original` (no `main`) all at seed
       `2f8f463`, HEAD on `active`, origin → `gitea.guinness.x-trillion.com/guinness/orca_mcp_guides.git`
       (not yet pushed). Matches the existing box trees (cf. iris, lexa-mcp).
-- [ ] **Create Gitea repo** `guinness/orca_mcp_guides` (private) on the box — **[USER/box]** (needs
-      `GITEA_TOKEN` / box access; sandbox can't reach the box). Then `git push origin --all` from the
-      box working copy to populate `upstream`/`active`/`guinness`/`original`; set `guinness` as default.
+- [x] **Create Gitea repo** `guinness/orca_mcp_guides` (private) + **push all 4 branches** — done
+      2026-06-14 (repo id 20, HTTP 201; branches active/guinness/original/upstream pushed; `guinness`
+      set as default branch). Done via on-box token (never left the box).
 - [ ] **Wire sync** — add this repo to `/root/sync_guinness_upstream.sh` (GitHub→Gitea `upstream`),
       **or** for a page this small just push the curated tree to `guinness` by hand.
 - [ ] **Create the Coolify app** → source = Gitea `guinness/orca_mcp_guides`, branch `guinness`,
