@@ -870,7 +870,18 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
           <div id="dashQueryList"></div>
           <div class="actions">
             <button id="dashRun">Run ▶</button>
+            <div class="answer-toggle" id="answerToggle" role="group" aria-label="Answer detail level">
+              <button type="button" class="at-opt active" data-view="brief">Brief</button>
+              <button type="button" class="at-opt" data-view="enhanced">Enhanced</button>
+            </div>
           </div>
+          <p class="note" style="margin-top:8px">Each panel shows a one-line answer above its component. Toggle <strong>Brief</strong> ↔ <strong>Enhanced</strong> to switch between the direct answer and the same answer with related context — no re-run needed.</p>
+          <style>
+            .answer-toggle { display:inline-flex; border:1px solid var(--line,#d5d9e0); border-radius:8px; overflow:hidden; vertical-align:middle; margin-left:10px; }
+            .answer-toggle .at-opt { background:transparent; border:0; padding:7px 14px; font-size:13px; cursor:pointer; color:var(--muted,#5b6472); }
+            .answer-toggle .at-opt.active { background:var(--brand,#1f3a5f); color:#fff; }
+            .dash-cell-answer { font-size:13.5px; line-height:1.45; color:var(--text,#1f2733); padding:2px 0 10px; border-bottom:1px solid var(--line,#eef0f3); margin-bottom:10px; }
+          </style>
         </div>
 
         <div class="panel">
@@ -892,7 +903,12 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
     const EMBEDDED = new URLSearchParams(location.search).get('orion') === 'true';
     const ON_BOX = EMBEDDED || /(^|\.)guinness\.x-trillion\.com$/.test(location.hostname);
     const ORCA_BASE = ON_BOX ? 'https://orca.x-trillion.com' : 'https://orca-mcp.x-trillion.com';
-    const FETCH_CREDS = ON_BOX ? 'include' : 'same-origin';
+    // On-box/embedded: send the xt_session cookie (credentials:include) so the
+    // auth gateway authenticates the user. Standalone/dev: the public gateway
+    // authenticates by X-Client-ID header, not cookies — use 'omit' so a
+    // cross-origin credentialed request isn't blocked by the gateway returning
+    // Access-Control-Allow-Origin: * on the actual response.
+    const FETCH_CREDS = ON_BOX ? 'include' : 'omit';
     const ENDPOINT = ORCA_BASE + '/call';
 
     // ── Branding ────────────────────────────────────────────────
@@ -1626,14 +1642,39 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
       bodyEl.innerHTML = html || '<div class="empty-table">No preview for this question. See Single query → Raw JSON.</div>';
     }
 
+    // ── Answer detail toggle (Brief ↔ Enhanced) ──────────────────
+    // orca_query with answer_mode:true returns a bare `answer` and a richer
+    // `answer_detail` (the answer plus related context). We fetch both once and
+    // flip between them client-side — no re-run needed.
+    let answerView = 'brief';
+    let dashAnswers = [];  // per-cell { answer, answer_detail }
+
+    function answerFor(i) {
+      const a = dashAnswers[i];
+      if (!a) return '';
+      return (answerView === 'enhanced' ? a.answer_detail : a.answer) || a.answer || '';
+    }
+
+    function paintAnswers() {
+      document.querySelectorAll('#dashGrid .dash-cell').forEach((cell, i) => {
+        const el = cell.querySelector('.dash-cell-answer');
+        if (!el) return;
+        const t = answerFor(i);
+        el.textContent = t || '';
+        el.style.display = t ? '' : 'none';
+      });
+    }
+
     async function runDashboard() {
       const grid = document.getElementById("dashGrid");
       const queries = Array.from(document.querySelectorAll(".dash-q")).map(t => t.value.trim());
       grid.innerHTML = "";
+      dashAnswers = [];
       const bodies = queries.map((q) => {
         const cell = document.createElement("div");
         cell.className = "dash-cell";
         cell.innerHTML = `<div class="dash-cell-q">${escapeHtml(q || "(empty)")}</div>` +
+          `<div class="dash-cell-answer" style="display:none"></div>` +
           `<div class="dash-cell-body"><div class="empty-table">Loading…</div></div>`;
         grid.appendChild(cell);
         return cell.querySelector(".dash-cell-body");
@@ -1652,22 +1693,34 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
             headers: buildHeaders(),
             body: JSON.stringify({
               tool: "orca_query",
-              args: { query: q, client_id: clientInput.value.trim() || SITE.client_id },
+              args: { query: q, client_id: clientInput.value.trim() || SITE.client_id, answer_mode: true },
               include_display: true
             }),
             signal: controller.signal
           });
           clearTimeout(timeoutId);
-          renderDashboardCell(bodies[i], await res.json(), dashPicks[i]);
+          const env = await res.json();
+          // answer_mode fields ride inside the orca_query envelope at env.data
+          const ad = (env && env.data && typeof env.data === "object") ? env.data : {};
+          dashAnswers[i] = { answer: ad.answer || "", answer_detail: ad.answer_detail || ad.answer || "" };
+          renderDashboardCell(bodies[i], env, dashPicks[i]);
         } catch (err) {
           clearTimeout(timeoutId);
           bodies[i].innerHTML = `<div class="empty-table">${err.name === "AbortError" ? "Timed out after 60s." : "Request failed."}</div>`;
         }
+        paintAnswers();
       }));
       runBtn.disabled = false;
     }
 
     document.getElementById("dashRun").addEventListener("click", runDashboard);
+    document.querySelectorAll("#answerToggle .at-opt").forEach((b) => {
+      b.addEventListener("click", () => {
+        answerView = b.getAttribute("data-view");
+        document.querySelectorAll("#answerToggle .at-opt").forEach(x => x.classList.toggle("active", x === b));
+        paintAnswers();
+      });
+    });
     document.querySelectorAll(".mode-btn").forEach((btn) => {
       btn.addEventListener("click", () => {
         const mode = btn.getAttribute("data-mode");
