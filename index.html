@@ -1668,6 +1668,15 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
       if ((ans && ans.block === "chart") || /\b(pie|chart|graph|donut|doughnut|visuali[sz])/.test((question || "").toLowerCase())) {
         const ser = allocSeries(cdata, question);
         if (ser && ser.data.length) {
+          // Deterministic headline from the SAME computed series — the LLM
+          // mis-aggregates per-bond rows (e.g. "Mexico 9.6%" when it's 19.6%),
+          // so override the skill's answer line to match the pie exactly.
+          if (ans) {
+            const top = ser.data.slice(0, 2).map(x => `${x.label} ${x.value}%`).join(" and ");
+            const noun = /rating/i.test(ser.title) ? "rating bands" : "countries";
+            ans.answer = `${top} lead across ${ser.data.length} ${noun}.`;
+            ans.answer_detail = ans.answer;
+          }
           const chartId = `chart-${chartSeq++}`;
           pendingCharts.push({ id: chartId, block: { chart_type: "pie", title: ser.title, data: ser.data } });
           bodyEl.innerHTML = `<div class="chart-container"><canvas id="${chartId}"></canvas></div>`;
