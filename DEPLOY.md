@@ -17,13 +17,13 @@ that calls the Orca `/call` HTTP API at runtime. No server build, no secrets in 
 | **Git remote(s)** | ✅ GitHub `urbancanary/orca_mcp_guides` **+** Gitea `guinness/orca_mcp_guides` (created + pushed 2026-06-14) | GitHub `urbancanary/orca_mcp_guides` (dev/vault) **+** Gitea `guinness/orca_mcp_guides` on the box |
 | **Box working copy** | ✅ `~/Notebooks/hetzner/orca_mcp_guides` (seeded from GitHub `5faa1f2`), **pushed to Gitea** | `~/Notebooks/hetzner/orca_mcp_guides`, origin = Gitea, edits on branch `active` |
 | **Branch model** | ✅ Gitea has `upstream`/`active`/`guinness`/`original` (no `main`); **`guinness` is the default branch** (Coolify build target) | Box repo: `upstream` / `active` / `guinness` / `original` — **no `main`** (by design); Coolify builds **`guinness`** |
-| **Live host** | none. `tom.guinnessgi.x-trillion.com` → box IP but **error page**; `tom.x-trillion.com` → **no DNS** | `ask.guinness.x-trillion.com` (Traefik host-routed, Let's Encrypt) |
-| **Deploy trigger** | `git push` → GitHub, reaches **nothing live** | push to Gitea `guinness` → **Coolify auto-builds + serves** |
-| **Build** | n/a | Coolify **static app**, NIXPACKS + `python3 -m http.server` (current `Procfile`); healthcheck **off** (python-slim no-curl gotcha) |
+| **Live host** | ✅ `ask.guinness.x-trillion.com` — HTTP 200, real Let's Encrypt cert (deployed 2026-06-15) | `ask.guinness.x-trillion.com` (Traefik host-routed, Let's Encrypt) |
+| **Deploy trigger** | push to Gitea `guinness` then **manual Coolify Redeploy** (webhook not yet wired — see #1690) | push to Gitea `guinness` → **Coolify auto-builds + serves** |
+| **Build** | ✅ Coolify app `ask-orca` (uuid `d7kq3ygsw6yp38e1e8hptndu`), NIXPACKS + `python3 -m http.server`, `PORT=8080`, healthcheck **off** | Coolify **static app**, NIXPACKS + `python3 -m http.server` (current `Procfile`); healthcheck **off** (python-slim no-curl gotcha) |
 | **Runtime gateway** | works standalone via public `orca-mcp.x-trillion.com` (`credentials:'omit'`) | on-box uses `orca.x-trillion.com` (authenticated, sends `xt_session` cookie); standalone falls back to public — **both already coded in `index.html`** |
 | **On-box auth** | none (public header-auth path) | `xt_session` cookie via the Orca gateway (same SSO as the other box apps) |
 | **In the confidentiality pipeline?** | no | optional — only if Tom/Will get **Gitea read access**; then full `GUINNESS_DELIVERY_RUNBOOK.md` (scrub + leak-gate + storefront) applies |
-| **Status** | **NOT DEPLOYED ANYWHERE** | live + discoverable from the Orion box shell ("Ask Orca" tile) |
+| **Status** | ✅ **LIVE** at `ask.guinness.x-trillion.com` (200, real cert; `/?orion=true` iframe path 200) | live + discoverable from the Orion box shell ("Ask Orca" tile) |
 
 **The one-line truth:** `git push origin main` here publishes to GitHub and reaches **no live host**.
 The box does **not** deploy from GitHub — it deploys from **Gitea on the box**, which this repo is not yet wired into.
@@ -76,12 +76,13 @@ Orion box shell  →  "Ask Orca" tile iframes  ask.guinness.x-trillion.com?orion
       set as default branch). Done via on-box token (never left the box).
 - [ ] **Wire sync** — add this repo to `/root/sync_guinness_upstream.sh` (GitHub→Gitea `upstream`),
       **or** for a page this small just push the curated tree to `guinness` by hand.
-- [ ] **Create the Coolify app** → source = Gitea `guinness/orca_mcp_guides`, branch `guinness`,
-      static build (NIXPACKS `python3 -m http.server`), healthcheck **off**, FQDN `ask.guinness.x-trillion.com`.
-- [ ] **DNS/TLS** — the `*.guinness.x-trillion.com` wildcard already points at the box; confirm the host
-      resolves and Traefik issues a cert.
-- [ ] **Smoke test** in a browser with the box session: panels fill, Brief↔Enhanced toggle flips,
-      `answer_mode` answers present.
+- [x] **Create the Coolify app** — done 2026-06-15. App `ask-orca` uuid `d7kq3ygsw6yp38e1e8hptndu`,
+      source = Gitea `guinness/orca_mcp_guides` branch `guinness`, NIXPACKS `python3 -m http.server`,
+      `PORT=8080`, healthcheck off, FQDN `ask.guinness.x-trillion.com`. Created via on-box Coolify API.
+- [x] **DNS/TLS** — confirmed: `ask.guinness.x-trillion.com` → HTTP 200, real Let's Encrypt cert.
+- [ ] **Smoke test** in a browser with the box session: page loads (verified 200 + `/?orion=true` 200);
+      still TODO — confirm panels actually fill (data calls need a valid `xt_session`; under the no-login
+      per-user subdomain Tom has no session, so live Orca calls may 401 — ties to the deferred real-auth work).
 - [ ] **Wire the Orion tile** ("Ask Orca" sidebar entry → `ask.guinness.x-trillion.com?orion=true`).
 - [ ] **Update §1 NOW column + the CLAUDE.md deploy register row** for orca_mcp_guides.
 
