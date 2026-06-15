@@ -1151,11 +1151,16 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
 
     function processPendingCharts() {
       if (!window.Chart) return;
-      
-      pendingCharts.forEach(({ id, block }) => {
+      // Take and CLEAR the queue: with two chart cells, the second call used to
+      // re-iterate the first cell's already-rendered canvas, and Chart.js throws
+      // "canvas is already in use" — which surfaced as "Request failed" on the
+      // second chart (e.g. country pie). Also destroy any prior chart on re-run.
+      const queue = pendingCharts.splice(0);
+      queue.forEach(({ id, block }) => {
         const ctx = document.getElementById(id);
         if (!ctx) return;
-        
+        if (window.Chart.getChart) { const existing = window.Chart.getChart(ctx); if (existing) existing.destroy(); }
+
         const labels = block.data.map(d => d.label);
         const values = block.data.map(d => d.value);
         const type = block.chart_type === "pie" ? "pie" : "bar";
