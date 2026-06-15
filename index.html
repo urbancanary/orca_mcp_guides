@@ -1645,7 +1645,10 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
       const rows = Array.isArray(data) ? data : (Array.isArray(data.holdings) ? data.holdings : null);
       if (rows && rows.length) {
         const field = wantRating ? "rating" : "country";
-        const total = rows.reduce((a, r) => a + (Number(r.market_value) || 0), 0) || 1;
+        // Denominator is NAV (bonds + cash), matching the dashboard's by_country
+        // pct — NOT bonds-only, which over-states every slice (Mexico 22.8% vs 19.6%).
+        const cash = Number((data.cash_balance != null ? data.cash_balance : data.cash) || 0);
+        const total = (rows.reduce((a, r) => a + (Number(r.market_value) || 0), 0) + cash) || 1;
         const agg = {};
         rows.forEach(r => { const k = r[field] || "—"; agg[k] = (agg[k] || 0) + (Number(r.market_value) || 0); });
         const s = Object.entries(agg).map(([label, v]) => ({ label, value: +(v / total * 100).toFixed(1) }))
