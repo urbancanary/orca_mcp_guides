@@ -1626,11 +1626,55 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
       return Object.assign({}, display, { blocks: out });
     }
 
-    function renderDashboardCell(bodyEl, response, pick, ans) {
+    // Build a pie series ({data:[{label,value}], title}) from a portfolio
+    // response — preferring the dashboard's allocation aggregate, else
+    // aggregating the per-bond holdings rows by country/rating. Returns null.
+    function allocSeries(data, question) {
+      if (!data) return null;
+      const q = (question || "").toLowerCase();
+      const wantRating = /rating|credit|quality/.test(q);
+      const alloc = data.allocation || {};
+      const fromAlloc = (arr, key, title) => {
+        const s = (arr || []).map(x => ({ label: x[key], value: Number(x.pct) }))
+                              .filter(x => x.label && isFinite(x.value));
+        return s.length ? { data: s, title } : null;
+      };
+      if (wantRating && Array.isArray(alloc.by_rating)) return fromAlloc(alloc.by_rating, "rating", "Rating allocation");
+      if (!wantRating && Array.isArray(alloc.by_country)) return fromAlloc(alloc.by_country, "country", "Country allocation");
+      // Fallback: aggregate the holdings rows client-side.
+      const rows = Array.isArray(data) ? data : (Array.isArray(data.holdings) ? data.holdings : null);
+      if (rows && rows.length) {
+        const field = wantRating ? "rating" : "country";
+        const total = rows.reduce((a, r) => a + (Number(r.market_value) || 0), 0) || 1;
+        const agg = {};
+        rows.forEach(r => { const k = r[field] || "—"; agg[k] = (agg[k] || 0) + (Number(r.market_value) || 0); });
+        const s = Object.entries(agg).map(([label, v]) => ({ label, value: +(v / total * 100).toFixed(1) }))
+                                     .sort((a, b) => b.value - a.value);
+        return s.length ? { data: s, title: wantRating ? "Rating allocation" : "Country allocation" } : null;
+      }
+      return alloc.by_country ? fromAlloc(alloc.by_country, "country", "Country allocation") : null;
+    }
+
+    function renderDashboardCell(bodyEl, response, pick, ans, question) {
       // A "fact" answer (a single value/name) is fully shown by the answer line
       // above the cell — don't also dump the raw component (e.g. the whole 25-row
       // holdings table for "longest maturity bond"). Charts/tables still render.
       if (ans && ans.block === "fact" && ans.answer) { bodyEl.innerHTML = ""; return; }
+      let cdata = response && response.data ? response.data : response;
+      if (cdata && cdata.data && typeof cdata.data === "object") cdata = cdata.data;
+      // CHART: skill flagged a chart, or the question explicitly asks for one →
+      // draw a pie from the allocation (the data is already here). Falls through
+      // to the table/blocks renderer if there's no chartable series.
+      if ((ans && ans.block === "chart") || /\b(pie|chart|graph|donut|doughnut|visuali[sz])/.test((question || "").toLowerCase())) {
+        const ser = allocSeries(cdata, question);
+        if (ser && ser.data.length) {
+          const chartId = `chart-${chartSeq++}`;
+          pendingCharts.push({ id: chartId, block: { chart_type: "pie", title: ser.title, data: ser.data } });
+          bodyEl.innerHTML = `<div class="chart-container"><canvas id="${chartId}"></canvas></div>`;
+          processPendingCharts();
+          return;
+        }
+      }
       // Same logic as renderTables, inline, targeting one cell, sliced by pick.
       if (response && response.display && Array.isArray(response.display.blocks) && response.display.blocks.length) {
         if (typeof applyTheme === "function") applyTheme(response.display.theme);
@@ -1725,7 +1769,7 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
             answer_detail: top.answer_detail || nested.answer_detail || top.answer || nested.answer || "",
             block: top.block || nested.block || ""
           };
-          renderDashboardCell(bodies[i], env, dashPicks[i], dashAnswers[i]);
+          renderDashboardCell(bodies[i], env, dashPicks[i], dashAnswers[i], q);
         } catch (err) {
           clearTimeout(timeoutId);
           bodies[i].innerHTML = `<div class="empty-table">${err.name === "AbortError" ? "Timed out after 60s." : "Request failed."}</div>`;
