@@ -909,6 +909,12 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
     // cross-origin credentialed request isn't blocked by the gateway returning
     // Access-Control-Allow-Origin: * on the actual response.
     const FETCH_CREDS = ON_BOX ? 'include' : 'omit';
+    // The auth gateway (orca.x-trillion.com) requires X-Client-ID + X-API-Key.
+    // Accessed directly (not via a logged-in Orion session) there's no xt_session
+    // cookie, so we authenticate the demo with the Guinness client key. This is the
+    // synthetic wnbf demo dataset only — never real holdings. CORS on the gateway
+    // echoes this origin + allows these headers (verified).
+    const ORCA_API_KEY = 'jethro-prod';
     const ENDPOINT = ORCA_BASE + '/call';
 
     // ── Branding ────────────────────────────────────────────────
@@ -1018,6 +1024,11 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
       const headers = { "Content-Type": "application/json" };
       const email = emailInput.value.trim();
       if (email) headers["x-user-email"] = email;
+      // Authenticate the demo against the gateway by client key (header auth),
+      // independent of any xt_session cookie.
+      const cid = (clientInput && clientInput.value.trim()) || (SITE && SITE.client_id) || "guinness";
+      headers["X-Client-ID"] = cid;
+      if (ORCA_API_KEY) headers["X-API-Key"] = ORCA_API_KEY;
       return headers;
     }
 
