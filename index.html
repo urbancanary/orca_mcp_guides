@@ -899,7 +899,14 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
               <button type="button" class="at-opt" data-view="enhanced">Enhanced</button>
             </div>
           </div>
-          <p class="note" style="margin-top:8px">Each panel shows a one-line answer above its component. Toggle <strong>Brief</strong> ↔ <strong>Enhanced</strong> to switch between the direct answer and the same answer with related context — no re-run needed.</p>
+          <div class="actions" style="margin-top:8px; align-items:center; gap:10px;">
+            <span style="font-size:13px; font-weight:600; color:var(--muted,#5b6472);">Data as of</span>
+            <div class="answer-toggle" id="dateToggle" role="group" aria-label="Data as-of date">
+              <button type="button" class="at-opt active" data-asof="">Now</button>
+              <button type="button" class="at-opt" data-asof="EOM" id="eomBtn">End of last month</button>
+            </div>
+          </div>
+          <p class="note" style="margin-top:8px">Each panel shows a one-line answer above its component. Toggle <strong>Brief</strong> ↔ <strong>Enhanced</strong> for more context (no re-run). Flip <strong>Data as of</strong> to see the same questions answered at a past date — the numbers change because Orca re-derives them point-in-time.</p>
           <style>
             .answer-toggle { display:inline-flex; border:1px solid var(--line,#d5d9e0); border-radius:8px; overflow:hidden; vertical-align:middle; margin-left:10px; }
             .answer-toggle .at-opt { background:transparent; border:0; padding:7px 14px; font-size:13px; cursor:pointer; color:var(--muted,#5b6472); }
@@ -909,7 +916,7 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
         </div>
 
         <div class="panel">
-          <h2>Dashboard</h2>
+          <h2>Dashboard <span id="dashAsOfLabel" style="font-size:13px; font-weight:500; color:var(--muted,#5b6472);"></span></h2>
           <div id="dashGrid" class="dash-grid">
             <div class="empty-table">Edit the six questions on the left and press Run — each panel fills with a finished component, in your brand colours.</div>
           </div>
@@ -1770,6 +1777,16 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
     // flip between them client-side — no re-run needed.
     let answerView = 'brief';
     let dashAnswers = [];  // per-cell { answer, answer_detail }
+    let dashAsOf = "";     // "" = live/today; else YYYY-MM-DD point-in-time (passed as as_of)
+    function endOfLastMonth() {
+      const d = new Date(); d.setDate(0);  // day 0 of this month = last day of previous month
+      const m = String(d.getMonth() + 1).padStart(2, "0"), day = String(d.getDate()).padStart(2, "0");
+      return `${d.getFullYear()}-${m}-${day}`;
+    }
+    function prettyDate(iso) {
+      const [y, m, dd] = iso.split("-").map(Number);
+      return new Date(y, m - 1, dd).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+    }
 
     function answerFor(i) {
       const a = dashAnswers[i];
@@ -1815,7 +1832,7 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
             headers: buildHeaders(),
             body: JSON.stringify({
               tool: "orca_query",
-              args: { query: q, client_id: clientInput.value.trim() || SITE.client_id, answer_mode: true },
+              args: { query: q, client_id: clientInput.value.trim() || SITE.client_id, answer_mode: true, ...(dashAsOf ? { as_of: dashAsOf } : {}) },
               include_display: true
             }),
             signal: controller.signal
@@ -1850,6 +1867,20 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
         paintAnswers();
       });
     });
+    // Data-as-of toggle — flip Now ↔ end-of-last-month and re-run so numbers update.
+    (function () {
+      const eom = document.getElementById("eomBtn");
+      if (eom) { const lm = new Date(); lm.setDate(0); eom.textContent = "End of " + lm.toLocaleDateString("en-GB", { month: "long" }); }
+      document.querySelectorAll("#dateToggle .at-opt").forEach((b) => {
+        b.addEventListener("click", () => {
+          document.querySelectorAll("#dateToggle .at-opt").forEach(x => x.classList.toggle("active", x === b));
+          dashAsOf = b.getAttribute("data-asof") === "EOM" ? endOfLastMonth() : "";
+          const lbl = document.getElementById("dashAsOfLabel");
+          if (lbl) lbl.textContent = dashAsOf ? "— as of " + prettyDate(dashAsOf) : "— live (today)";
+          runDashboard();
+        });
+      });
+    })();
     document.querySelectorAll(".mode-btn").forEach((btn) => {
       btn.addEventListener("click", () => {
         const mode = btn.getAttribute("data-mode");
