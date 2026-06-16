@@ -31,26 +31,45 @@
       line-height: 1.5;
     }
 
-    /* App shell: Orca hero + nav in a left rail, the active mode fills the right
-       column starting at the top of the screen (Dashboard & Guides reclaim the
-       full-width hero band they used to sit under). */
+    /* App shell: a top bar (Orca brand + tab nav), then a workspace row of
+       sidebar (the active mode's controls) + content (its output). Tabs along the
+       top free the whole left column for the Dashboard's 6 questions. */
     main.shell {
+      display: flex;
+      flex-direction: column;
+      margin: 0;
+      padding: 0 32px 40px;
+      max-width: none;
+    }
+    .topbar {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+      padding: 16px 0 14px;
+      margin-bottom: 22px;
+      border-bottom: 1px solid var(--line);
+      position: sticky;
+      top: 0;
+      background: var(--bg);
+      z-index: 5;
+    }
+    .topbar .hero-title { margin: 0; flex: 0 0 auto; }
+    .workspace {
       display: flex;
       gap: 30px;
       align-items: flex-start;
-      margin: 0;
-      padding: 26px 32px 40px;
-      max-width: none;
     }
     /* One sidebar width for every view (wide enough for the Dashboard's 6 question
-       boxes); content fills the rest. */
+       boxes); content fills the rest. Guides has no controls, so it drops the
+       sidebar and the viewer takes the full width. */
     .sidebar {
       flex: 0 0 300px;
       position: sticky;
-      top: 26px;
+      top: 84px;
       align-self: flex-start;
     }
     .content { flex: 1; min-width: 0; }
+    body[data-mode="guides"] .sidebar { display: none; }
 
     /* Dashboard's controls make the sidebar tall — let it scroll with the page */
     body[data-mode="dashboard"] .sidebar { position: static; }
@@ -71,8 +90,8 @@
       color: var(--muted);
     }
 
-    /* Single query keeps its comfortable measure; Dashboard/Guides fill the column */
-    #mode-single { max-width: 1100px; }
+    /* Every mode fills the content column — no narrow cap forcing sideways scroll */
+    #mode-single { max-width: none; }
 
     /* Embedded in the Orion shell (?orion=true): the shell provides the chrome,
        so drop the app's own masthead/badge/explainer/endpoint affordance. */
@@ -144,13 +163,12 @@
        single-query affordances — irrelevant on Dashboard and crowding for the
        Guides viewer. Show them only in Single query; keep the shared header
        (title + subhead) minimal everywhere else. */
-    /* Sidebar hero sizing */
-    .sidebar .hero-title { margin-bottom: 14px; align-items: center; }
-    .sidebar .hero-av { width: 48px; height: 48px; }
-    .sidebar .hero-titletext { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; min-width: 0; }
-    .sidebar .hero-title h1 { font-size: 25px; line-height: 1; }
-    .sidebar .subhead { font-size: 13.5px; line-height: 1.45; margin: 0 0 14px; }
-    .sidebar .badge { display: inline-block; }
+    /* Top-bar brand — avatar · Ask Orca · Live Preview, all on one line with the tabs */
+    .topbar .hero-title { display: flex; align-items: center; gap: 11px; margin: 0; }
+    .topbar .hero-av { width: 40px; height: 40px; }
+    .topbar .hero-titletext { display: flex; flex-direction: row; align-items: center; gap: 11px; min-width: 0; }
+    .topbar .hero-title h1 { font-size: 22px; line-height: 1; }
+    .topbar .badge { display: inline-block; }
 
     /* Single-query chrome (Try-asking + explainer): lives in the sidebar, shown
        only in Single query, so the content column starts with Query/Results at
@@ -318,6 +336,16 @@
       width: 100%;
       overflow-x: auto;
       margin-bottom: 16px;
+    }
+
+    /* Expandable holdings table — top 10, click to reveal the rest */
+    .more-row td { padding: 0 !important; background: var(--soft); }
+    .more-row:hover td { background: #e7eef7; }
+    .more-toggle {
+      width: 100%; text-align: left;
+      background: none; border: 0; cursor: pointer;
+      padding: 9px 12px; font: inherit; font-size: 12.5px; font-weight: 600;
+      color: var(--brand);
     }
 
     .table-scroll table {
@@ -597,17 +625,15 @@
 
     .tldr-points .ico { margin-right: 8px; }
 
-    /* Mode nav — vertical in the left sidebar */
+    /* Mode nav — horizontal, on the top bar beside the brand */
     .mode-toggle {
       display: flex;
-      flex-direction: column;
-      align-items: stretch;
-      gap: 5px;
-      margin-top: 4px;
+      flex-direction: row;
+      gap: 6px;
     }
 
     .mode-btn {
-      padding: 10px 14px;
+      padding: 8px 16px;
       font-size: 13px;
       font-weight: 700;
       color: var(--muted);
@@ -615,7 +641,7 @@
       border: 1px solid var(--line);
       border-radius: 6px;
       cursor: pointer;
-      text-align: left;
+      text-align: center;
     }
 
     .mode-btn.active {
@@ -820,7 +846,7 @@
 </head>
 <body>
   <main class="shell">
-    <aside class="sidebar">
+    <header class="topbar">
       <div class="hero-title">
         <img class="hero-av" src="https://guinness.x-trillion.com/assets/orca.png" alt="Orca AI assistant" loading="lazy">
         <div class="hero-titletext">
@@ -833,7 +859,11 @@
         <button class="mode-btn active" data-mode="dashboard">Dashboard</button>
         <button class="mode-btn" data-mode="guides">Guides</button>
       </nav>
-      <!-- Per-tab context: lower in the sidebar, specific to the active mode -->
+    </header>
+
+    <div class="workspace">
+    <aside class="sidebar">
+      <!-- Per-tab context: specific to the active mode -->
       <p class="side-context" id="sideContext"></p>
     <!-- Single-query chrome: shown only in Single query (see body[data-mode] CSS) -->
     <div class="single-chrome">
@@ -844,7 +874,7 @@
         <button class="try-chip" onclick="askExample('How much cash is in the Wealthy Nations fund?')">How much cash?</button>
         <button class="try-chip" onclick="askExample('What is the longest maturity bond in the Wealthy Nations fund?')">Longest-dated bond</button>
       </div>
-      <details class="tldr">
+      <details class="tldr" open>
         <summary>New here? 10-second explainer</summary>
         <div class="tldr-body">
           <p><strong>You ask a question in plain English. You get back a finished answer</strong> — a chart, a table, or a short write-up — already in your brand colours, ready to use.</p>
@@ -1093,6 +1123,7 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
       <iframe id="guideFrame" class="guide-frame" title="Ask Orca guide" loading="lazy"></iframe>
     </div><!-- /#mode-guides -->
     </div><!-- /.content -->
+    </div><!-- /.workspace -->
   </main>
 
   <script>
@@ -1964,11 +1995,24 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
         return isFinite(v) ? "$" + v.toLocaleString(undefined, { maximumFractionDigits: 0 }) : "";
       };
       const sorted = rows.slice().sort((a, b) => (Number(b.market_value) || 0) - (Number(a.market_value) || 0));
-      const top = sorted.slice(0, 12);
+      const TOP = 10;
+      const top = sorted.slice(0, TOP), extra = sorted.slice(TOP);
       const head = `<tr><th>Holding</th><th>Country</th><th style="text-align:right">Weight</th><th style="text-align:right">Market value</th></tr>`;
-      const body = top.map(r => `<tr><td>${escapeHtml(r.description || r.ticker || r.isin || "")}</td><td>${escapeHtml(r.country || "")}</td><td style="text-align:right">${pct(r)}</td><td style="text-align:right">${mv(r)}</td></tr>`).join("");
-      const more = rows.length > top.length ? `<tr><td colspan="4" style="color:var(--muted,#5b6472);font-size:12px">+ ${rows.length - top.length} more holdings</td></tr>` : "";
+      const rowHtml = (r, cls) => `<tr${cls ? ` class="${cls}" hidden` : ""}><td>${escapeHtml(r.description || r.ticker || r.isin || "")}</td><td>${escapeHtml(r.country || "")}</td><td style="text-align:right">${pct(r)}</td><td style="text-align:right">${mv(r)}</td></tr>`;
+      const body = top.map(r => rowHtml(r, "")).join("") + extra.map(r => rowHtml(r, "hx")).join("");
+      // Expander row: show the top 10, click to reveal the rest (and collapse again).
+      const more = extra.length
+        ? `<tr class="more-row"><td colspan="4"><button type="button" class="more-toggle" data-n="${extra.length}" onclick="toggleHoldings(this)">+ ${extra.length} more holdings</button></td></tr>`
+        : "";
       return `<div class="table-title">Top holdings (${rows.length})</div><table>${head}${body}${more}</table>`;
+    }
+    // Expand/collapse the hidden holdings rows (rendered into innerHTML; global so inline onclick can reach it).
+    function toggleHoldings(btn) {
+      const table = btn.closest("table");
+      if (!table) return;
+      const expanded = table.classList.toggle("holdings-expanded");
+      table.querySelectorAll("tr.hx").forEach(tr => { tr.hidden = !expanded; });
+      btn.textContent = expanded ? "− Show fewer" : `+ ${btn.dataset.n} more holdings`;
     }
 
     // ── Answer detail toggle (Brief ↔ Enhanced) ──────────────────
