@@ -562,6 +562,52 @@
       border-color: var(--brand);
     }
 
+    /* Guides mode — app-family guides (Athena, Iona, Iris, …) */
+    .guides {
+      display: grid;
+      grid-template-columns: 260px minmax(0, 1fr);
+      gap: 24px;
+      margin-top: 24px;
+      align-items: start;
+    }
+    .guide-nav { display: flex; flex-direction: column; gap: 6px; }
+    .guide-tab {
+      text-align: left;
+      padding: 11px 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .guide-tab:hover { border-color: var(--brand); }
+    .guide-tab.active { background: var(--brand); border-color: var(--brand); }
+    .guide-tab .gt-name { font-weight: 700; font-size: 14px; color: var(--ink); }
+    .guide-tab .gt-tag { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .guide-tab.active .gt-name,
+    .guide-tab.active .gt-tag { color: #fff; }
+    .guide-tab.active .gt-tag { opacity: .85; }
+
+    .guide-panel {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--panel);
+      padding: 28px 32px;
+    }
+    .guide-panel h1 { font-size: 24px; margin: 0 0 6px; color: var(--brand); }
+    .guide-panel .lede { font-size: 16px; color: var(--ink); margin: 0 0 8px; }
+    .guide-panel h2 {
+      font-size: 16px; margin: 22px 0 8px; color: var(--ink);
+      padding-top: 16px; border-top: 1px solid var(--line);
+    }
+    .guide-panel h2:first-of-type { border-top: none; padding-top: 0; }
+    .guide-panel p { margin: 0 0 10px; color: var(--ink); }
+    .guide-panel ul { margin: 0 0 12px; padding-left: 20px; }
+    .guide-panel li { margin: 0 0 5px; color: var(--ink); }
+    @media (max-width: 760px) {
+      .guides { grid-template-columns: 1fr; }
+    }
+
     /* Dashboard mode */
     .dash {
       display: grid;
@@ -694,6 +740,7 @@
     <div class="mode-toggle">
       <button class="mode-btn" data-mode="single">Single query</button>
       <button class="mode-btn active" data-mode="dashboard">Dashboard</button>
+      <button class="mode-btn" data-mode="guides">Guides</button>
     </div>
 
     <div id="mode-single" style="display:none">
@@ -923,6 +970,13 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
         </div>
       </section>
     </div><!-- /#mode-dashboard -->
+
+    <div id="mode-guides" style="display:none">
+      <div class="guides">
+        <nav class="guide-nav" id="guideNav"></nav>
+        <article class="guide-panel" id="guidePanel"></article>
+      </div>
+    </div><!-- /#mode-guides -->
   </main>
 
   <script>
@@ -1182,9 +1236,7 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
 
     // Header "Try asking" chips: jump to Single query mode, then run the example.
     function askExample(text) {
-      document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.getAttribute('data-mode') === 'single'));
-      const ms = document.getElementById('mode-single'); if (ms) ms.style.display = '';
-      const md = document.getElementById('mode-dashboard'); if (md) md.style.display = 'none';
+      setMode('single');
       useExample(text);
     }
 
@@ -1902,15 +1954,125 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
         });
       });
     })();
-    document.querySelectorAll(".mode-btn").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const mode = btn.getAttribute("data-mode");
-        document.querySelectorAll(".mode-btn").forEach(b => b.classList.toggle("active", b === btn));
-        document.getElementById("mode-single").style.display = mode === "single" ? "" : "none";
-        document.getElementById("mode-dashboard").style.display = mode === "dashboard" ? "" : "none";
+    // ── Guides mode — how to use Ask Orca + what happens behind the scenes ──
+    // Content is the Ask Orca briefing (guinness-platform/ASK_ORCA_TOM.md),
+    // split into "How to use it" and "Behind the scenes". Two halves only:
+    // the question is yours; the finished, branded answer is Orca's.
+    const GUIDES = [
+      { id: "ask", group: "How to use it", name: "Ask, don't build",
+        tag: "Type a question, get a finished answer",
+        title: "Ask, don't build",
+        lede: "You type what you want, in plain English, and the finished answer comes back ready to show.",
+        body: `
+          <ul>
+            <li>&ldquo;Largest country exposures&rdquo; &rarr; a finished pie chart.</li>
+            <li>&ldquo;Rating profile&rdquo; &rarr; a finished breakdown table.</li>
+            <li>&ldquo;How much cash?&rdquo; &rarr; the number, in context.</li>
+          </ul>
+          <p>You write the <em>question</em>. Orca returns the <em>finished thing</em>. There is no step in between where someone formats a chart or tidies a table &mdash; the answer arrives done, already in the fund's colours. The question is yours; the finished, branded answer is Orca's.</p>` },
+      { id: "dashboard", group: "How to use it", name: "A dashboard is six questions",
+        tag: "Edit six questions, press Run",
+        title: "A dashboard is just six questions",
+        lede: "A whole client dashboard is six plain-English questions. Edit them, press Run, and six finished panels appear.",
+        body: `
+          <ul>
+            <li>Six questions on the left, six finished components on the right.</li>
+            <li>Each panel is a chart, a table, or a headline figure &mdash; in brand colours.</li>
+            <li>Change a question, re-run, and only that panel updates. You never touch a chart.</li>
+          </ul>
+          <p>What looks like a bespoke dashboard is really six saved questions pointed at the engine. That is why a new dashboard takes minutes rather than a design sprint, and why it never quietly drifts out of date.</p>` },
+      { id: "try", group: "How to use it", name: "Try it yourself",
+        tag: "One link, one question",
+        title: "Try it yourself",
+        lede: "One link, one question &mdash; the whole idea in ten seconds.",
+        body: `
+          <ul>
+            <li>Switch to <strong>Single query</strong> and ask anything about the fund.</li>
+            <li>Type a question, or open <strong>Dashboard</strong> and press Run for the six-question set.</li>
+            <li>Every answer comes back finished and on-brand &mdash; built by you, in seconds.</li>
+          </ul>` },
+      { id: "thinking", group: "Behind the scenes", name: "Orca does the thinking",
+        tag: "Typed blocks, drawn once",
+        title: "Orca does the thinking",
+        lede: "Ask Orca decides what kind of answer a question needs and sends it back as a ready-to-draw block. The page simply draws whatever arrives.",
+        body: `
+          <ul>
+            <li>Orca returns a typed block &mdash; chart, table, or fact sheet &mdash; and chooses which one fits.</li>
+            <li>The page knows how to draw each <em>kind</em> of block, once.</li>
+            <li>A new kind of question renders with no new work on the page.</li>
+          </ul>
+          <p>The marketing app does not know what a yield curve is, or which part of the engine produced a number &mdash; it just draws the block it is handed. All of the intelligence sits on Orca's side of the line, so the app stays small and steady while the engine behind it keeps getting cleverer.</p>` },
+      { id: "brand", group: "Behind the scenes", name: "It already looks like you",
+        tag: "The brand travels with the answer",
+        title: "It already looks like you",
+        lede: "Every chart and table arrives in the fund's brand &mdash; not a generic template bolted on afterwards.",
+        body: `
+          <ul>
+            <li>The brand travels with the answer, decided centrally.</li>
+            <li>The same app serves a different team simply by changing who is asking.</li>
+            <li>Colour, type and tone stay consistent across every answer.</li>
+          </ul>
+          <p>Because the look is resolved in one place and sent with each response, there is a single source of truth for how things appear. Presenting the same app to another mandate is a setting, not a rebuild.</p>` },
+      { id: "api", group: "Behind the scenes", name: "The Product API",
+        tag: "A stable, typed contract",
+        title: "The same Orca, as a typed API",
+        lede: "Front ends read business fields &mdash; <code>ytw</code>, <code>duration</code>, <code>rating</code> &mdash; and never need to know which internal tool ran or how it labelled things.",
+        body: `
+          <ul>
+            <li>Single-bond lookups come back normalized as <code>bond_analytics</code> &mdash; clean numerics, source lineage, and a one-line summary.</li>
+            <li>Everything else is wrapped as <code>raw</code>, so the response is always valid.</li>
+            <li>You send the question; Orca answers with a typed block and decides whether it's a chart, a table, or a fact sheet.</li>
+          </ul>
+          <p>See the <strong>Product API</strong> tab in any single-query result for the live request and response shape.</p>` },
+      { id: "compounding", group: "Behind the scenes", name: "It gets better on its own",
+        tag: "New capabilities just appear",
+        title: "It gets better on its own",
+        lede: "When the engine gains a new capability, it appears in the app automatically &mdash; nobody updates the page.",
+        body: `
+          <ul>
+            <li>New data and new analytics surface with no change to the front end.</li>
+            <li>The app shipped today keeps improving as Orca does.</li>
+            <li>No maintenance backlog, no &ldquo;we will need a developer for that.&rdquo;</li>
+          </ul>
+          <p>Most dashboards rot &mdash; they are snapshots that need re-cutting every time something changes. This one is a live window: the page is fixed and simple, the engine moves. The value grows without the upkeep growing with it.</p>` },
+    ];
+
+    function renderGuide(id) {
+      const g = GUIDES.find(x => x.id === id) || GUIDES[0];
+      document.querySelectorAll(".guide-tab").forEach(t => t.classList.toggle("active", t.getAttribute("data-guide") === g.id));
+      document.getElementById("guidePanel").innerHTML =
+        `<h1>${g.title}</h1><p class="lede">${g.lede}</p>${g.body}`;
+    }
+
+    function buildGuides() {
+      const nav = document.getElementById("guideNav");
+      if (!nav) return;
+      let html = "", lastGroup = "";
+      GUIDES.forEach(g => {
+        if (g.group !== lastGroup) {
+          html += `<div class="gt-group" style="font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin:${lastGroup ? "14px" : "2px"} 0 4px 2px;">${g.group}</div>`;
+          lastGroup = g.group;
+        }
+        html += `<button class="guide-tab" data-guide="${g.id}"><div class="gt-name">${g.name}</div><div class="gt-tag">${g.tag}</div></button>`;
       });
+      nav.innerHTML = html;
+      nav.querySelectorAll(".guide-tab").forEach(t =>
+        t.addEventListener("click", () => renderGuide(t.getAttribute("data-guide"))));
+      renderGuide(GUIDES[0].id);
+    }
+
+    function setMode(mode) {
+      document.querySelectorAll(".mode-btn").forEach(b => b.classList.toggle("active", b.getAttribute("data-mode") === mode));
+      ["single", "dashboard", "guides"].forEach(m => {
+        const el = document.getElementById("mode-" + m);
+        if (el) el.style.display = m === mode ? "" : "none";
+      });
+    }
+    document.querySelectorAll(".mode-btn").forEach((btn) => {
+      btn.addEventListener("click", () => setMode(btn.getAttribute("data-mode")));
     });
     buildDashQueries();
+    buildGuides();
 
     // Embedded in the Orion shell → strip the app's own chrome (see CSS).
     if (EMBEDDED) document.body.classList.add("embedded");
