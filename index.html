@@ -96,6 +96,18 @@
       text-transform: uppercase;
     }
 
+    .hero-left { min-width: 0; }
+    .hero-title { display: flex; align-items: center; gap: 14px; margin-bottom: 4px; }
+    .hero-title h1 { margin: 0; }
+    .hero-av { width: 52px; height: 52px; border-radius: 12px; flex: 0 0 auto; box-shadow: 0 1px 4px rgba(20,30,60,.12); }
+    .hero-right { display: flex; flex-direction: column; align-items: flex-end; gap: 12px; flex: 0 0 auto; }
+    .try-card { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; width: 300px; text-align: left; }
+    .try-title { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 9px; }
+    .try-chip { display: inline-block; margin: 0 5px 6px 0; padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px;
+                background: #f6f8fc; color: var(--brand); font-size: 12.5px; font-weight: 600; cursor: pointer; transition: background .12s, color .12s; }
+    .try-chip:hover { background: var(--brand); color: #fff; border-color: var(--brand); }
+    @media (max-width: 760px) { .hero-right { display: none; } }
+
     .grid {
       display: grid;
       grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
@@ -646,11 +658,23 @@
 <body>
   <main>
     <header>
-      <div>
-        <h1>Ask Orca</h1>
+      <div class="hero-left">
+        <div class="hero-title">
+          <img class="hero-av" src="https://guinness.x-trillion.com/assets/orca.png" alt="Orca" loading="lazy">
+          <h1>Ask Orca</h1>
+        </div>
         <p class="subhead">Ask a question in plain English. Get back a finished, on-brand answer — a chart, a table, a client-ready summary — that you can drop straight into your work. No spreadsheets, no analysts, no chart-building.</p>
       </div>
-      <div class="badge">Marketing Demo</div>
+      <div class="hero-right">
+        <div class="badge">Marketing Demo</div>
+        <div class="try-card">
+          <div class="try-title">Try asking</div>
+          <button class="try-chip" onclick="askExample('Largest country exposures in wnbf')">Largest country exposures</button>
+          <button class="try-chip" onclick="askExample('Rating profile of wnbf')">Rating profile</button>
+          <button class="try-chip" onclick="askExample('How much cash is in wnbf?')">How much cash?</button>
+          <button class="try-chip" onclick="askExample('What is the longest maturity bond in wnbf?')">Longest-dated bond</button>
+        </div>
+      </div>
     </header>
 
     <details class="tldr" open>
@@ -1147,6 +1171,14 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
       queryInput.value = text;
       updateRequestShape();
       sendQuery();
+    }
+
+    // Header "Try asking" chips: jump to Single query mode, then run the example.
+    function askExample(text) {
+      document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.getAttribute('data-mode') === 'single'));
+      const ms = document.getElementById('mode-single'); if (ms) ms.style.display = '';
+      const md = document.getElementById('mode-dashboard'); if (md) md.style.display = 'none';
+      useExample(text);
     }
 
     function processPendingCharts() {
