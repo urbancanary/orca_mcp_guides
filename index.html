@@ -42,17 +42,18 @@
       padding: 26px 32px 40px;
       max-width: none;
     }
+    /* One sidebar width for every view (wide enough for the Dashboard's 6 question
+       boxes); content fills the rest. */
     .sidebar {
-      flex: 0 0 186px;
+      flex: 0 0 300px;
       position: sticky;
       top: 26px;
       align-self: flex-start;
     }
     .content { flex: 1; min-width: 0; }
 
-    /* Per-mode sidebar width: Dashboard holds the 6 question boxes, so it needs
-       room; Single/Guides stay narrow to give the content column the most width. */
-    body[data-mode="dashboard"] .sidebar { flex-basis: 312px; position: static; }
+    /* Dashboard's controls make the sidebar tall — let it scroll with the page */
+    body[data-mode="dashboard"] .sidebar { position: static; }
     body[data-mode="dashboard"] .side-context { display: none; }
 
     /* Dashboard controls live in the sidebar (questions + Run + toggles) */
@@ -144,11 +145,12 @@
        Guides viewer. Show them only in Single query; keep the shared header
        (title + subhead) minimal everywhere else. */
     /* Sidebar hero sizing */
-    .sidebar .hero-title { margin-bottom: 10px; }
-    .sidebar .hero-av { width: 44px; height: 44px; }
-    .sidebar .hero-title h1 { font-size: 26px; }
+    .sidebar .hero-title { margin-bottom: 14px; align-items: center; }
+    .sidebar .hero-av { width: 48px; height: 48px; }
+    .sidebar .hero-titletext { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; min-width: 0; }
+    .sidebar .hero-title h1 { font-size: 25px; line-height: 1; }
     .sidebar .subhead { font-size: 13.5px; line-height: 1.45; margin: 0 0 14px; }
-    .sidebar .badge { display: inline-block; margin-bottom: 18px; }
+    .sidebar .badge { display: inline-block; }
 
     /* Single-query chrome (Try-asking + explainer): lives in the sidebar, shown
        only in Single query, so the content column starts with Query/Results at
@@ -821,9 +823,11 @@
     <aside class="sidebar">
       <div class="hero-title">
         <img class="hero-av" src="https://guinness.x-trillion.com/assets/orca.png" alt="Orca AI assistant" loading="lazy">
-        <h1>Ask Orca</h1>
+        <div class="hero-titletext">
+          <h1>Ask Orca</h1>
+          <div class="badge">Live Preview</div>
+        </div>
       </div>
-      <div class="badge">Live Preview</div>
       <nav class="mode-toggle">
         <button class="mode-btn" data-mode="single">Single query</button>
         <button class="mode-btn active" data-mode="dashboard">Dashboard</button>
