@@ -111,6 +111,15 @@
     .try-chip:hover { background: var(--brand); color: #fff; border-color: var(--brand); }
     @media (max-width: 760px) { .hero-right { display: none; } }
 
+    /* Per-mode chrome: the "Try asking" chips and the 10-second explainer are
+       single-query affordances — irrelevant on Dashboard and crowding for the
+       Guides viewer. Show them only in Single query; keep the shared header
+       (title + subhead) minimal everywhere else. */
+    .hero-right, .tldr { display: none; }
+    body[data-mode="single"] .hero-right { display: flex; }
+    body[data-mode="single"] .tldr { display: block; }
+    @media (max-width: 760px) { body[data-mode="single"] .hero-right { display: none; } }
+
     .grid {
       display: grid;
       grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
@@ -2029,6 +2038,7 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
     }
 
     function setMode(mode) {
+      document.body.dataset.mode = mode;   // drives per-mode chrome (see CSS)
       document.querySelectorAll(".mode-btn").forEach(b => b.classList.toggle("active", b.getAttribute("data-mode") === mode));
       ["single", "dashboard", "guides"].forEach(m => {
         const el = document.getElementById("mode-" + m);
@@ -2039,6 +2049,8 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
     document.querySelectorAll(".mode-btn").forEach((btn) => {
       btn.addEventListener("click", () => setMode(btn.getAttribute("data-mode")));
     });
+    // Match the default active mode (Dashboard) so per-mode chrome is correct on load.
+    document.body.dataset.mode = document.querySelector(".mode-btn.active")?.getAttribute("data-mode") || "dashboard";
     buildDashQueries();
     runDashboard();
 
