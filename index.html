@@ -31,19 +31,28 @@
       line-height: 1.5;
     }
 
-    main {
-      max-width: none;
+    /* App shell: Orca hero + nav in a left rail, the active mode fills the right
+       column starting at the top of the screen (Dashboard & Guides reclaim the
+       full-width hero band they used to sit under). */
+    main.shell {
+      display: flex;
+      gap: 30px;
+      align-items: flex-start;
       margin: 0;
-      padding: 32px 32px 48px;
+      padding: 26px 32px 40px;
+      max-width: none;
     }
+    .sidebar {
+      flex: 0 0 208px;
+      position: sticky;
+      top: 26px;
+      align-self: flex-start;
+    }
+    .content { flex: 1; min-width: 0; }
 
-    /* Single-query view keeps its original comfortable width */
+    /* Single query keeps its comfortable measure; Dashboard/Guides fill the column */
     #mode-single,
-    header,
-    .tldr,
-    .mode-toggle {
-      max-width: 1100px;
-    }
+    .single-chrome { max-width: 1100px; }
 
     /* Embedded in the Orion shell (?orion=true): the shell provides the chrome,
        so drop the app's own masthead/badge/explainer/endpoint affordance. */
@@ -115,10 +124,17 @@
        single-query affordances — irrelevant on Dashboard and crowding for the
        Guides viewer. Show them only in Single query; keep the shared header
        (title + subhead) minimal everywhere else. */
-    .hero-right, .tldr { display: none; }
-    body[data-mode="single"] .hero-right { display: flex; }
-    body[data-mode="single"] .tldr { display: block; }
-    @media (max-width: 760px) { body[data-mode="single"] .hero-right { display: none; } }
+    /* Sidebar hero sizing */
+    .sidebar .hero-title { margin-bottom: 10px; }
+    .sidebar .hero-av { width: 44px; height: 44px; }
+    .sidebar .hero-title h1 { font-size: 26px; }
+    .sidebar .subhead { font-size: 13.5px; line-height: 1.45; margin: 0 0 14px; }
+    .sidebar .badge { display: inline-block; margin-bottom: 18px; }
+
+    /* Single-query chrome (Try-asking + explainer): shown only in Single query */
+    .single-chrome { display: none; }
+    body[data-mode="single"] .single-chrome { display: block; margin-bottom: 6px; }
+    .single-chrome .try-card { width: auto; margin-bottom: 14px; }
 
     .grid {
       display: grid;
@@ -550,15 +566,17 @@
 
     .tldr-points .ico { margin-right: 8px; }
 
-    /* Mode toggle (Single query / Dashboard) */
+    /* Mode nav — vertical in the left sidebar */
     .mode-toggle {
       display: flex;
-      gap: 4px;
-      margin-top: 22px;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 5px;
+      margin-top: 4px;
     }
 
     .mode-btn {
-      padding: 9px 18px;
+      padding: 10px 14px;
       font-size: 13px;
       font-weight: 700;
       color: var(--muted);
@@ -566,6 +584,7 @@
       border: 1px solid var(--line);
       border-radius: 6px;
       cursor: pointer;
+      text-align: left;
     }
 
     .mode-btn.active {
@@ -577,15 +596,22 @@
     /* Guides mode — the central Iris doc-viewer, embedded by reference (no local copy) */
     .guide-frame {
       width: 100%;
-      height: calc(100vh - 200px);
+      height: calc(100vh - 70px);
       min-height: 560px;
       border: 1px solid var(--line);
       border-radius: 10px;
       background: var(--panel);
-      margin-top: 24px;
       display: block;
     }
-    body.embedded .guide-frame { height: calc(100vh - 120px); }
+    body.embedded .guide-frame { height: calc(100vh - 40px); }
+
+    /* Narrow screens: sidebar stacks on top, content below */
+    @media (max-width: 760px) {
+      main.shell { flex-direction: column; gap: 16px; }
+      .sidebar { position: static; flex-basis: auto; width: 100%; }
+      .mode-toggle { flex-direction: row; flex-wrap: wrap; }
+      .guide-frame { height: calc(100vh - 240px); }
+    }
 
     /* Dashboard mode */
     .dash {
@@ -721,11 +747,9 @@
     .try-chip:focus:not(:focus-visible) { outline: none; }
     button:disabled { cursor: not-allowed; opacity: .55; }
 
-    /* I. Centre constrained blocks on wide screens */
+    /* I. Centre the constrained single-query column on wide screens */
     #mode-single,
-    header,
-    .tldr,
-    .mode-toggle {
+    .single-chrome {
       margin-left: auto;
       margin-right: auto;
     }
@@ -765,45 +789,44 @@
   </style>
 </head>
 <body>
-  <main>
-    <header>
-      <div class="hero-left">
-        <div class="hero-title">
-          <img class="hero-av" src="https://guinness.x-trillion.com/assets/orca.png" alt="Orca AI assistant" loading="lazy">
-          <h1>Ask Orca</h1>
-        </div>
-        <p class="subhead">Ask a question in plain English. Get back a finished chart, table, or summary — ready to use, in your brand colours.</p>
+  <main class="shell">
+    <aside class="sidebar">
+      <div class="hero-title">
+        <img class="hero-av" src="https://guinness.x-trillion.com/assets/orca.png" alt="Orca AI assistant" loading="lazy">
+        <h1>Ask Orca</h1>
       </div>
-      <div class="hero-right">
-        <div class="badge">Live Preview</div>
-        <div class="try-card">
-          <div class="try-title">Try asking</div>
-          <button class="try-chip" onclick="askExample('Largest country exposures in the Wealthy Nations fund')">Largest country exposures</button>
-          <button class="try-chip" onclick="askExample('Rating profile of the Wealthy Nations fund')">Rating profile</button>
-          <button class="try-chip" onclick="askExample('How much cash is in the Wealthy Nations fund?')">How much cash?</button>
-          <button class="try-chip" onclick="askExample('What is the longest maturity bond in the Wealthy Nations fund?')">Longest-dated bond</button>
-        </div>
-      </div>
-    </header>
+      <p class="subhead">Ask a question in plain English. Get back a finished chart, table, or summary — ready to use, in your brand colours.</p>
+      <div class="badge">Live Preview</div>
+      <nav class="mode-toggle">
+        <button class="mode-btn" data-mode="single">Single query</button>
+        <button class="mode-btn active" data-mode="dashboard">Dashboard</button>
+        <button class="mode-btn" data-mode="guides">Guides</button>
+      </nav>
+    </aside>
 
-    <details class="tldr" open>
-      <summary>New here? 10-second explainer</summary>
-      <div class="tldr-body">
-        <p><strong>You ask a question in plain English. You get back a finished answer</strong> — a chart, a table, or a short write-up — already in your brand colours, ready to use.</p>
-        <p class="tldr-analogy">Think of it like a vending machine for portfolio answers: press a button ("largest country exposures?") and out comes the finished thing. You don't cook it or plate it — it arrives done.</p>
-        <div class="tldr-points">
-          <div><span class="ico">🗣️</span><strong>Ask like a human.</strong> No codes, no menus. "Which bonds look cheap?" works.</div>
-          <div><span class="ico">🎨</span><strong>It looks like you.</strong> Every chart and table comes out in your colours, not ours.</div>
-          <div><span class="ico">🔄</span><strong>It gets smarter on its own.</strong> When new data is added to Orca, it just appears here — nobody has to update this page.</div>
-        </div>
-        <p class="note">Type a question on the left, watch the answer build on the right.</p>
+    <div class="content">
+    <!-- Single-query chrome: shown only in Single query (see body[data-mode] CSS) -->
+    <div class="single-chrome">
+      <div class="try-card">
+        <div class="try-title">Try asking</div>
+        <button class="try-chip" onclick="askExample('Largest country exposures in the Wealthy Nations fund')">Largest country exposures</button>
+        <button class="try-chip" onclick="askExample('Rating profile of the Wealthy Nations fund')">Rating profile</button>
+        <button class="try-chip" onclick="askExample('How much cash is in the Wealthy Nations fund?')">How much cash?</button>
+        <button class="try-chip" onclick="askExample('What is the longest maturity bond in the Wealthy Nations fund?')">Longest-dated bond</button>
       </div>
-    </details>
-
-    <div class="mode-toggle">
-      <button class="mode-btn" data-mode="single">Single query</button>
-      <button class="mode-btn active" data-mode="dashboard">Dashboard</button>
-      <button class="mode-btn" data-mode="guides">Guides</button>
+      <details class="tldr" open>
+        <summary>New here? 10-second explainer</summary>
+        <div class="tldr-body">
+          <p><strong>You ask a question in plain English. You get back a finished answer</strong> — a chart, a table, or a short write-up — already in your brand colours, ready to use.</p>
+          <p class="tldr-analogy">Think of it like a vending machine for portfolio answers: press a button ("largest country exposures?") and out comes the finished thing. You don't cook it or plate it — it arrives done.</p>
+          <div class="tldr-points">
+            <div><span class="ico">🗣️</span><strong>Ask like a human.</strong> No codes, no menus. "Which bonds look cheap?" works.</div>
+            <div><span class="ico">🎨</span><strong>It looks like you.</strong> Every chart and table comes out in your colours, not ours.</div>
+            <div><span class="ico">🔄</span><strong>It gets smarter on its own.</strong> When new data is added to Orca, it just appears here — nobody has to update this page.</div>
+          </div>
+          <p class="note">Type a question on the left, watch the answer build on the right.</p>
+        </div>
+      </details>
     </div>
 
     <div id="mode-single" style="display:none">
@@ -1037,6 +1060,7 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
     <div id="mode-guides" style="display:none">
       <iframe id="guideFrame" class="guide-frame" title="Ask Orca guide" loading="lazy"></iframe>
     </div><!-- /#mode-guides -->
+    </div><!-- /.content -->
   </main>
 
   <script>
