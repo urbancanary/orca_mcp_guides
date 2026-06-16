@@ -3,7 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Orca Query Demo</title>
+  <title>Ask Orca</title>
+  <meta name="description" content="Ask a question about the Guinness portfolio in plain English — get back a finished chart or table, ready to use.">
+  <meta property="og:title" content="Ask Orca">
+  <meta property="og:description" content="Portfolio answers in plain English.">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     :root {
@@ -562,51 +565,18 @@
       border-color: var(--brand);
     }
 
-    /* Guides mode — app-family guides (Athena, Iona, Iris, …) */
-    .guides {
-      display: grid;
-      grid-template-columns: 260px minmax(0, 1fr);
-      gap: 24px;
-      margin-top: 24px;
-      align-items: start;
-    }
-    .guide-nav { display: flex; flex-direction: column; gap: 6px; }
-    .guide-tab {
-      text-align: left;
-      padding: 11px 14px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: var(--panel);
-      cursor: pointer;
-      font-family: inherit;
-    }
-    .guide-tab:hover { border-color: var(--brand); }
-    .guide-tab.active { background: var(--brand); border-color: var(--brand); }
-    .guide-tab .gt-name { font-weight: 700; font-size: 14px; color: var(--ink); }
-    .guide-tab .gt-tag { font-size: 12px; color: var(--muted); margin-top: 2px; }
-    .guide-tab.active .gt-name,
-    .guide-tab.active .gt-tag { color: #fff; }
-    .guide-tab.active .gt-tag { opacity: .85; }
-
-    .guide-panel {
+    /* Guides mode — the central Iris doc-viewer, embedded by reference (no local copy) */
+    .guide-frame {
+      width: 100%;
+      height: calc(100vh - 200px);
+      min-height: 560px;
       border: 1px solid var(--line);
       border-radius: 10px;
       background: var(--panel);
-      padding: 28px 32px;
+      margin-top: 24px;
+      display: block;
     }
-    .guide-panel h1 { font-size: 24px; margin: 0 0 6px; color: var(--brand); }
-    .guide-panel .lede { font-size: 16px; color: var(--ink); margin: 0 0 8px; }
-    .guide-panel h2 {
-      font-size: 16px; margin: 22px 0 8px; color: var(--ink);
-      padding-top: 16px; border-top: 1px solid var(--line);
-    }
-    .guide-panel h2:first-of-type { border-top: none; padding-top: 0; }
-    .guide-panel p { margin: 0 0 10px; color: var(--ink); }
-    .guide-panel ul { margin: 0 0 12px; padding-left: 20px; }
-    .guide-panel li { margin: 0 0 5px; color: var(--ink); }
-    @media (max-width: 760px) {
-      .guides { grid-template-columns: 1fr; }
-    }
+    body.embedded .guide-frame { height: calc(100vh - 120px); }
 
     /* Dashboard mode */
     .dash {
@@ -699,6 +669,90 @@
       .fact-row { grid-template-columns: 1fr; gap: 4px; }
       .fact-value { text-align: left; }
     }
+
+    /* ── Design polish additions ────────────────────────────────── */
+
+    /* A. Loading state */
+    .loading-state {
+      padding: 20px 12px;
+      text-align: center;
+      color: var(--brand);
+      font-size: 13px;
+      font-weight: 600;
+      opacity: .7;
+      animation: pulse 1.4s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:.7} 50%{opacity:.35} }
+
+    /* C. Table row zebra + hover */
+    tbody tr:nth-child(even) { background: var(--soft, #f6f8fc); }
+    tbody tr:hover { background: #eef3f8; }
+    td:nth-last-child(-n+2),
+    th:nth-last-child(-n+2) { text-align: right; }
+
+    /* D. Dash-cell padding */
+    .dash-cell { padding: 16px; }
+    .dash-cell .chart-container { padding: 4px; }
+
+    /* E. Panel question label */
+    .dash-cell-q {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .03em;
+    }
+
+    /* F. fact-label weight */
+    .fact-label { font-weight: 700; }
+
+    /* G. Accessibility */
+    :focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+    button:focus:not(:focus-visible),
+    .try-chip:focus:not(:focus-visible) { outline: none; }
+    button:disabled { cursor: not-allowed; opacity: .55; }
+
+    /* I. Centre constrained blocks on wide screens */
+    #mode-single,
+    header,
+    .tldr,
+    .mode-toggle {
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    /* J. Explainer chevron — CSS border-triangle replacing ▾ character */
+    .tldr > summary::before { content: none; }
+    .tldr > summary { padding-left: 18px; position: relative; }
+    .tldr > summary::after {
+      content: "";
+      display: inline-block;
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%) rotate(-90deg);
+      width: 0; height: 0;
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-top: 7px solid var(--brand);
+      transition: transform .2s;
+    }
+    .tldr[open] > summary::after {
+      transform: translateY(-50%) rotate(0deg);
+    }
+
+    /* Hide developer chrome in Single query view */
+    .tab[data-tab="tab-json"],
+    .tab[data-tab="tab-query"],
+    #tab-json,
+    #tab-query,
+    #copyCurl,
+    #discover,
+    p.note[data-site-label],
+    #endpointLabel,
+    .client-context-split,
+    .request-shape-panel,
+    .response-fields-panel { display: none !important; }
   </style>
 </head>
 <body>
@@ -706,19 +760,19 @@
     <header>
       <div class="hero-left">
         <div class="hero-title">
-          <img class="hero-av" src="https://guinness.x-trillion.com/assets/orca.png" alt="Orca" loading="lazy">
+          <img class="hero-av" src="https://guinness.x-trillion.com/assets/orca.png" alt="Orca AI assistant" loading="lazy">
           <h1>Ask Orca</h1>
         </div>
-        <p class="subhead">Ask a question in plain English. Get back a finished, on-brand answer — a chart, a table, a client-ready summary — that you can drop straight into your work. No spreadsheets, no analysts, no chart-building.</p>
+        <p class="subhead">Ask a question in plain English. Get back a finished chart, table, or summary — ready to use, in your brand colours.</p>
       </div>
       <div class="hero-right">
-        <div class="badge">Marketing Demo</div>
+        <div class="badge">Live Preview</div>
         <div class="try-card">
           <div class="try-title">Try asking</div>
-          <button class="try-chip" onclick="askExample('Largest country exposures in wnbf')">Largest country exposures</button>
-          <button class="try-chip" onclick="askExample('Rating profile of wnbf')">Rating profile</button>
-          <button class="try-chip" onclick="askExample('How much cash is in wnbf?')">How much cash?</button>
-          <button class="try-chip" onclick="askExample('What is the longest maturity bond in wnbf?')">Longest-dated bond</button>
+          <button class="try-chip" onclick="askExample('Largest country exposures in the Wealthy Nations fund')">Largest country exposures</button>
+          <button class="try-chip" onclick="askExample('Rating profile of the Wealthy Nations fund')">Rating profile</button>
+          <button class="try-chip" onclick="askExample('How much cash is in the Wealthy Nations fund?')">How much cash?</button>
+          <button class="try-chip" onclick="askExample('What is the longest maturity bond in the Wealthy Nations fund?')">Longest-dated bond</button>
         </div>
       </div>
     </header>
@@ -753,7 +807,7 @@
         <label for="query">Question</label>
         <textarea id="query">Summarize the portfolio positioning in client-friendly language.</textarea>
 
-        <div class="split">
+        <div class="split client-context-split">
           <div>
             <label for="clientId">Client context</label>
             <input id="clientId" value="guinness">
@@ -906,7 +960,7 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
       </div>
     </section>
 
-    <section class="grid">
+    <section class="grid request-shape-panel">
       <div class="panel">
         <h2>Request Shape</h2>
         <pre id="requestShape">{
@@ -972,10 +1026,7 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
     </div><!-- /#mode-dashboard -->
 
     <div id="mode-guides" style="display:none">
-      <div class="guides">
-        <nav class="guide-nav" id="guideNav"></nav>
-        <article class="guide-panel" id="guidePanel"></article>
-      </div>
+      <iframe id="guideFrame" class="guide-frame" title="Ask Orca guide" loading="lazy"></iframe>
     </div><!-- /#mode-guides -->
   </main>
 
@@ -988,6 +1039,12 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
     const EMBEDDED = new URLSearchParams(location.search).get('orion') === 'true';
     const ON_BOX = EMBEDDED || /(^|\.)guinness\.x-trillion\.com$/.test(location.hostname);
     const ORCA_BASE = ON_BOX ? 'https://orca.x-trillion.com' : 'https://orca-mcp.x-trillion.com';
+    // Guides are NOT stored in this app — they're the central doc-viewer (Iris)
+    // rendering of the single-source markdown (guinness-platform/ASK_ORCA_TOM.md),
+    // embedded by reference so the app and the doc can never drift. Box serves the
+    // box Iris; standalone/dev uses the Railway Iris. ?embed=1 strips Iris chrome.
+    const IRIS_BASE = ON_BOX ? 'https://iris.guinnessgi.x-trillion.com' : 'https://iris.x-trillion.com';
+    const GUIDE_DOC_ID = 'ask-orca';
     // On-box/embedded: send the xt_session cookie (credentials:include) so the
     // auth gateway authenticates the user. Standalone/dev: the public gateway
     // authenticates by X-Client-ID header, not cookies — use 'omit' so a
@@ -1060,12 +1117,12 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
     // the same dashboard. (Orca returns the whole dashboard for any portfolio
     // query today — see backlog #1647 — so we compute once and slice client-side.)
     const DASH_GUINNESS = [
-      { q: "Largest country exposures in wnbf",            pick: { block: "Country Allocation", as: "chart", title: "Country exposure" } },
-      { q: "What is the total value of wnbf?",             pick: { block: "Country Allocation", as: "table", title: "Value by country" } },
-      { q: "What is the average credit rating of wnbf?",   pick: { block: "Rating Allocation",  as: "chart", title: "Credit rating mix" } },
-      { q: "Rating profile of wnbf",                       pick: { block: "Rating Allocation",  as: "table", title: "Rating breakdown" } },
-      { q: "What is the duration of wnbf?",                pick: { block: "Portfolio Snapshot", metrics: ["Yield", "Duration"], title: "Yield & duration" } },
-      { q: "How much cash is in wnbf?",                    pick: { block: "Portfolio Snapshot", metrics: ["Cash %"], title: "Cash position" } }
+      { q: "Largest country exposures in the Wealthy Nations fund",            pick: { block: "Country Allocation", as: "chart", title: "Country exposure" } },
+      { q: "What is the total value of the Wealthy Nations fund?",             pick: { block: "Country Allocation", as: "table", title: "Value by country" } },
+      { q: "What is the average credit rating of the Wealthy Nations fund?",   pick: { block: "Rating Allocation",  as: "chart", title: "Credit rating mix" } },
+      { q: "Rating profile of the Wealthy Nations fund",                       pick: { block: "Rating Allocation",  as: "table", title: "Rating breakdown" } },
+      { q: "What is the duration of the Wealthy Nations fund?",                pick: { block: "Portfolio Snapshot", metrics: ["Yield", "Duration"], title: "Yield & duration" } },
+      { q: "How much cash is in the Wealthy Nations fund?",                    pick: { block: "Portfolio Snapshot", metrics: ["Cash %"], title: "Cash position" } }
     ];
     const DASH_SIENNA = [
       { q: "Largest country exposures in the fund",          pick: { block: "Country Allocation", as: "chart", title: "Country exposure" } },
@@ -1264,16 +1321,21 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
               label: block.title || "",
               data: values,
               backgroundColor: values.map((_, i) => chartPalette[i % chartPalette.length]),
-              borderWidth: 1
+              borderWidth: type === 'pie' ? 0 : 1,
+              borderColor: type === 'pie' ? '#fff' : undefined
             }]
           },
           options: {
             responsive: true,
             maintainAspectRatio: false,
+            layout: { padding: { left: 4, right: 4, top: 4, bottom: 4 } },
             plugins: {
               legend: {
                 position: type === 'pie' ? 'right' : 'top',
                 labels: {
+                  font: { size: 11 },
+                  boxWidth: 10,
+                  padding: 6,
                   // show the % share on each legend entry
                   generateLabels: function (chart) {
                     const ds = chart.data.datasets[0];
@@ -1457,8 +1519,8 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
 
       sendButton.disabled = true;
       output.textContent = "Loading...";
-      tables.innerHTML = '<div class="empty-table">Loading preview...</div>';
-      
+      tables.innerHTML = '<div class="loading-state">Loading…</div>';
+
       // Auto-switch to Preview tab
       document.querySelector('[data-tab="tab-tables"]').click();
 
@@ -1549,7 +1611,7 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
     async function executeManualPayload(payload) {
       sendButton.disabled = true;
       output.textContent = "Discovering capabilities...";
-      tables.innerHTML = '<div class="empty-table">Loading preview...</div>';
+      tables.innerHTML = '<div class="loading-state">Loading…</div>';
       document.querySelector('[data-tab="tab-tables"]').click();
 
       const controller = new AbortController();
@@ -1650,7 +1712,7 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
       const payload = queryApiPayload();
       if (!payload.query) { queryApiOut.innerHTML = '<div class="empty-table">Enter a bond question first.</div>'; return; }
       sendQueryApiBtn.disabled = true;
-      queryApiOut.innerHTML = '<div class="empty-table">Loading…</div>';
+      queryApiOut.innerHTML = '<div class="loading-state">Loading…</div>';
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 60000);
       try {
@@ -1887,7 +1949,7 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
         cell.className = "dash-cell";
         cell.innerHTML = `<div class="dash-cell-q">${escapeHtml(q || "(empty)")}</div>` +
           `<div class="dash-cell-answer" style="display:none"></div>` +
-          `<div class="dash-cell-body"><div class="empty-table">Loading…</div></div>`;
+          `<div class="dash-cell-body"><div class="loading-state">Loading…</div></div>`;
         grid.appendChild(cell);
         return cell.querySelector(".dash-cell-body");
       });
@@ -1954,111 +2016,16 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
         });
       });
     })();
-    // ── Guides mode — how to use Ask Orca + what happens behind the scenes ──
-    // Content is the Ask Orca briefing (guinness-platform/ASK_ORCA_TOM.md),
-    // split into "How to use it" and "Behind the scenes". Two halves only:
-    // the question is yours; the finished, branded answer is Orca's.
-    const GUIDES = [
-      { id: "ask", group: "How to use it", name: "Ask, don't build",
-        tag: "Type a question, get a finished answer",
-        title: "Ask, don't build",
-        lede: "You type what you want, in plain English, and the finished answer comes back ready to show.",
-        body: `
-          <ul>
-            <li>&ldquo;Largest country exposures&rdquo; &rarr; a finished pie chart.</li>
-            <li>&ldquo;Rating profile&rdquo; &rarr; a finished breakdown table.</li>
-            <li>&ldquo;How much cash?&rdquo; &rarr; the number, in context.</li>
-          </ul>
-          <p>You write the <em>question</em>. Orca returns the <em>finished thing</em>. There is no step in between where someone formats a chart or tidies a table &mdash; the answer arrives done, already in the fund's colours. The question is yours; the finished, branded answer is Orca's.</p>` },
-      { id: "dashboard", group: "How to use it", name: "A dashboard is six questions",
-        tag: "Edit six questions, press Run",
-        title: "A dashboard is just six questions",
-        lede: "A whole client dashboard is six plain-English questions. Edit them, press Run, and six finished panels appear.",
-        body: `
-          <ul>
-            <li>Six questions on the left, six finished components on the right.</li>
-            <li>Each panel is a chart, a table, or a headline figure &mdash; in brand colours.</li>
-            <li>Change a question, re-run, and only that panel updates. You never touch a chart.</li>
-          </ul>
-          <p>What looks like a bespoke dashboard is really six saved questions pointed at the engine. That is why a new dashboard takes minutes rather than a design sprint, and why it never quietly drifts out of date.</p>` },
-      { id: "try", group: "How to use it", name: "Try it yourself",
-        tag: "One link, one question",
-        title: "Try it yourself",
-        lede: "One link, one question &mdash; the whole idea in ten seconds.",
-        body: `
-          <ul>
-            <li>Switch to <strong>Single query</strong> and ask anything about the fund.</li>
-            <li>Type a question, or open <strong>Dashboard</strong> and press Run for the six-question set.</li>
-            <li>Every answer comes back finished and on-brand &mdash; built by you, in seconds.</li>
-          </ul>` },
-      { id: "thinking", group: "Behind the scenes", name: "Orca does the thinking",
-        tag: "Typed blocks, drawn once",
-        title: "Orca does the thinking",
-        lede: "Ask Orca decides what kind of answer a question needs and sends it back as a ready-to-draw block. The page simply draws whatever arrives.",
-        body: `
-          <ul>
-            <li>Orca returns a typed block &mdash; chart, table, or fact sheet &mdash; and chooses which one fits.</li>
-            <li>The page knows how to draw each <em>kind</em> of block, once.</li>
-            <li>A new kind of question renders with no new work on the page.</li>
-          </ul>
-          <p>The marketing app does not know what a yield curve is, or which part of the engine produced a number &mdash; it just draws the block it is handed. All of the intelligence sits on Orca's side of the line, so the app stays small and steady while the engine behind it keeps getting cleverer.</p>` },
-      { id: "brand", group: "Behind the scenes", name: "It already looks like you",
-        tag: "The brand travels with the answer",
-        title: "It already looks like you",
-        lede: "Every chart and table arrives in the fund's brand &mdash; not a generic template bolted on afterwards.",
-        body: `
-          <ul>
-            <li>The brand travels with the answer, decided centrally.</li>
-            <li>The same app serves a different team simply by changing who is asking.</li>
-            <li>Colour, type and tone stay consistent across every answer.</li>
-          </ul>
-          <p>Because the look is resolved in one place and sent with each response, there is a single source of truth for how things appear. Presenting the same app to another mandate is a setting, not a rebuild.</p>` },
-      { id: "api", group: "Behind the scenes", name: "The Product API",
-        tag: "A stable, typed contract",
-        title: "The same Orca, as a typed API",
-        lede: "Front ends read business fields &mdash; <code>ytw</code>, <code>duration</code>, <code>rating</code> &mdash; and never need to know which internal tool ran or how it labelled things.",
-        body: `
-          <ul>
-            <li>Single-bond lookups come back normalized as <code>bond_analytics</code> &mdash; clean numerics, source lineage, and a one-line summary.</li>
-            <li>Everything else is wrapped as <code>raw</code>, so the response is always valid.</li>
-            <li>You send the question; Orca answers with a typed block and decides whether it's a chart, a table, or a fact sheet.</li>
-          </ul>
-          <p>See the <strong>Product API</strong> tab in any single-query result for the live request and response shape.</p>` },
-      { id: "compounding", group: "Behind the scenes", name: "It gets better on its own",
-        tag: "New capabilities just appear",
-        title: "It gets better on its own",
-        lede: "When the engine gains a new capability, it appears in the app automatically &mdash; nobody updates the page.",
-        body: `
-          <ul>
-            <li>New data and new analytics surface with no change to the front end.</li>
-            <li>The app shipped today keeps improving as Orca does.</li>
-            <li>No maintenance backlog, no &ldquo;we will need a developer for that.&rdquo;</li>
-          </ul>
-          <p>Most dashboards rot &mdash; they are snapshots that need re-cutting every time something changes. This one is a live window: the page is fixed and simple, the engine moves. The value grows without the upkeep growing with it.</p>` },
-    ];
-
-    function renderGuide(id) {
-      const g = GUIDES.find(x => x.id === id) || GUIDES[0];
-      document.querySelectorAll(".guide-tab").forEach(t => t.classList.toggle("active", t.getAttribute("data-guide") === g.id));
-      document.getElementById("guidePanel").innerHTML =
-        `<h1>${g.title}</h1><p class="lede">${g.lede}</p>${g.body}`;
-    }
-
-    function buildGuides() {
-      const nav = document.getElementById("guideNav");
-      if (!nav) return;
-      let html = "", lastGroup = "";
-      GUIDES.forEach(g => {
-        if (g.group !== lastGroup) {
-          html += `<div class="gt-group" style="font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin:${lastGroup ? "14px" : "2px"} 0 4px 2px;">${g.group}</div>`;
-          lastGroup = g.group;
-        }
-        html += `<button class="guide-tab" data-guide="${g.id}"><div class="gt-name">${g.name}</div><div class="gt-tag">${g.tag}</div></button>`;
-      });
-      nav.innerHTML = html;
-      nav.querySelectorAll(".guide-tab").forEach(t =>
-        t.addEventListener("click", () => renderGuide(t.getAttribute("data-guide"))));
-      renderGuide(GUIDES[0].id);
+    // ── Guides mode — the central Iris doc-viewer, embedded by reference ──
+    // The guide is NOT stored in this app. It is the Notes/Slides/Split rendering
+    // of guinness-platform/ASK_ORCA_TOM.md, authored once and served by Iris.
+    // We iframe it (lazily, on first open) so editing the markdown + rebuilding
+    // Iris updates the guide here automatically — the app and the doc can't drift.
+    function loadGuide() {
+      const f = document.getElementById("guideFrame");
+      if (!f || f.dataset.loaded) return;
+      f.src = `${IRIS_BASE}/docs/${GUIDE_DOC_ID}.html?embed=1`;
+      f.dataset.loaded = "1";
     }
 
     function setMode(mode) {
@@ -2067,12 +2034,13 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
         const el = document.getElementById("mode-" + m);
         if (el) el.style.display = m === mode ? "" : "none";
       });
+      if (mode === "guides") loadGuide();
     }
     document.querySelectorAll(".mode-btn").forEach((btn) => {
       btn.addEventListener("click", () => setMode(btn.getAttribute("data-mode")));
     });
     buildDashQueries();
-    buildGuides();
+    runDashboard();
 
     // Embedded in the Orion shell → strip the app's own chrome (see CSS).
     if (EMBEDDED) document.body.classList.add("embedded");
