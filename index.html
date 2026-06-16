@@ -43,12 +43,21 @@
       max-width: none;
     }
     .sidebar {
-      flex: 0 0 208px;
+      flex: 0 0 186px;
       position: sticky;
       top: 26px;
       align-self: flex-start;
     }
     .content { flex: 1; min-width: 0; }
+    /* Per-tab context blurb — fills the sidebar space, specific to the active mode */
+    .side-context {
+      margin: 18px 2px 0;
+      padding-top: 15px;
+      border-top: 1px solid var(--line);
+      font-size: 12.5px;
+      line-height: 1.5;
+      color: var(--muted);
+    }
 
     /* Single query keeps its comfortable measure; Dashboard/Guides fill the column */
     #mode-single,
@@ -795,13 +804,14 @@
         <img class="hero-av" src="https://guinness.x-trillion.com/assets/orca.png" alt="Orca AI assistant" loading="lazy">
         <h1>Ask Orca</h1>
       </div>
-      <p class="subhead">Ask a question in plain English. Get back a finished chart, table, or summary — ready to use, in your brand colours.</p>
       <div class="badge">Live Preview</div>
       <nav class="mode-toggle">
         <button class="mode-btn" data-mode="single">Single query</button>
         <button class="mode-btn active" data-mode="dashboard">Dashboard</button>
         <button class="mode-btn" data-mode="guides">Guides</button>
       </nav>
+      <!-- Per-tab context: lower in the sidebar, specific to the active mode -->
+      <p class="side-context" id="sideContext"></p>
     </aside>
 
     <div class="content">
@@ -2061,8 +2071,15 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
       f.dataset.loaded = "1";
     }
 
+    const SIDE_CONTEXT = {
+      single: "Ask anything about the fund in plain English — get back a finished chart, table, or summary, already in your brand colours.",
+      dashboard: "Six saved questions, six finished panels. Edit any question and press Run — you never build a chart.",
+      guides: "How Ask Orca works. Read it as notes, or flip to slides.",
+    };
     function setMode(mode) {
       document.body.dataset.mode = mode;   // drives per-mode chrome (see CSS)
+      const ctx = document.getElementById("sideContext");
+      if (ctx) ctx.textContent = SIDE_CONTEXT[mode] || "";
       document.querySelectorAll(".mode-btn").forEach(b => b.classList.toggle("active", b.getAttribute("data-mode") === mode));
       ["single", "dashboard", "guides"].forEach(m => {
         const el = document.getElementById("mode-" + m);
@@ -2073,8 +2090,8 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
     document.querySelectorAll(".mode-btn").forEach((btn) => {
       btn.addEventListener("click", () => setMode(btn.getAttribute("data-mode")));
     });
-    // Match the default active mode (Dashboard) so per-mode chrome is correct on load.
-    document.body.dataset.mode = document.querySelector(".mode-btn.active")?.getAttribute("data-mode") || "dashboard";
+    // Match the default active mode (Dashboard) so per-mode chrome + sidebar context are correct on load.
+    setMode(document.querySelector(".mode-btn.active")?.getAttribute("data-mode") || "dashboard");
     buildDashQueries();
     runDashboard();
 
