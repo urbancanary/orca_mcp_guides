@@ -1639,9 +1639,18 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
       const q = (question || "").toLowerCase();
       const wantRating = /rating|credit|quality/.test(q);
       const alloc = data.allocation || {};
+      // Cash is NOT in allocation.by_country/by_rating (those are bonds, summing to
+      // ~88%); it lives in summary.cash_pct (~11.7%). Append it as its own slice so
+      // the pie sums to 100% of NAV. Marked {cash:true} so the headline skips it.
+      const summary = data.summary || {};
+      const cashPct = Number(summary.cash_pct);
+      const addCash = (s) => {
+        if (isFinite(cashPct) && cashPct > 0.05) s.push({ label: "Cash", value: +cashPct.toFixed(1), cash: true });
+        return s;
+      };
       const fromAlloc = (arr, key, title) => {
-        const s = (arr || []).map(x => ({ label: x[key], value: Number(x.pct) }))
-                              .filter(x => x.label && isFinite(x.value));
+        const s = addCash((arr || []).map(x => ({ label: x[key], value: Number(x.pct) }))
+                              .filter(x => x.label && isFinite(x.value)));
         return s.length ? { data: s, title } : null;
       };
       if (wantRating && Array.isArray(alloc.by_rating)) return fromAlloc(alloc.by_rating, "rating", "Rating allocation");
@@ -1658,6 +1667,7 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
         rows.forEach(r => { const k = r[field] || "—"; agg[k] = (agg[k] || 0) + (Number(r.market_value) || 0); });
         const s = Object.entries(agg).map(([label, v]) => ({ label, value: +(v / total * 100).toFixed(1) }))
                                      .sort((a, b) => b.value - a.value);
+        if (cash > 0) s.push({ label: "Cash", value: +(cash / total * 100).toFixed(1), cash: true });
         return s.length ? { data: s, title: wantRating ? "Rating allocation" : "Country allocation" } : null;
       }
       return alloc.by_country ? fromAlloc(alloc.by_country, "country", "Country allocation") : null;
@@ -1680,9 +1690,10 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
           // mis-aggregates per-bond rows (e.g. "Mexico 9.6%" when it's 19.6%),
           // so override the skill's answer line to match the pie exactly.
           if (ans) {
-            const top = ser.data.slice(0, 2).map(x => `${x.label} ${x.value}%`).join(" and ");
+            const cats = ser.data.filter(x => !x.cash);  // count categories, not the Cash slice
+            const top = cats.slice(0, 2).map(x => `${x.label} ${x.value}%`).join(" and ");
             const noun = /rating/i.test(ser.title) ? "rating bands" : "countries";
-            ans.answer = `${top} lead across ${ser.data.length} ${noun}.`;
+            ans.answer = `${top} lead across ${cats.length} ${noun}.`;
             ans.answer_detail = ans.answer;
           }
           const chartId = `chart-${chartSeq++}`;
