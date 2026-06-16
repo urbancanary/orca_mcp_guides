@@ -1763,12 +1763,33 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
       const summary = data && data.summary;
       const allocation = data && data.allocation ? data.allocation : {};
       const html = [
+        holdingsTable(data),
         bondRows(data),
         metricRows(summary),
         countryRows(allocation.by_country),
         ratingRows(allocation.by_rating)
       ].filter(Boolean).join("");
       bodyEl.innerHTML = html || '<div class="empty-table">No preview for this question. See Single query → Raw JSON.</div>';
+    }
+
+    // Render a holdings list (get_client_holdings) as a Top-holdings table.
+    function holdingsTable(data) {
+      const rows = Array.isArray(data) ? data : (data && Array.isArray(data.holdings) ? data.holdings : null);
+      if (!rows || !rows.length) return "";
+      const pct = (r) => {
+        let w = Number(r.pct_of_fund); if (!isFinite(w) || w === 0) w = Number(r.weight);
+        if (!isFinite(w)) return ""; if (Math.abs(w) <= 1.5) w *= 100; return w.toFixed(1) + "%";
+      };
+      const mv = (r) => {
+        const v = Number(r.market_value != null ? r.market_value : r.dirty_market_value);
+        return isFinite(v) ? "$" + v.toLocaleString(undefined, { maximumFractionDigits: 0 }) : "";
+      };
+      const sorted = rows.slice().sort((a, b) => (Number(b.market_value) || 0) - (Number(a.market_value) || 0));
+      const top = sorted.slice(0, 12);
+      const head = `<tr><th>Holding</th><th>Country</th><th style="text-align:right">Weight</th><th style="text-align:right">Market value</th></tr>`;
+      const body = top.map(r => `<tr><td>${escapeHtml(r.description || r.ticker || r.isin || "")}</td><td>${escapeHtml(r.country || "")}</td><td style="text-align:right">${pct(r)}</td><td style="text-align:right">${mv(r)}</td></tr>`).join("");
+      const more = rows.length > top.length ? `<tr><td colspan="4" style="color:var(--muted,#5b6472);font-size:12px">+ ${rows.length - top.length} more holdings</td></tr>` : "";
+      return `<div class="table-title">Top holdings (${rows.length})</div><table>${head}${body}${more}</table>`;
     }
 
     // ── Answer detail toggle (Brief ↔ Enhanced) ──────────────────
