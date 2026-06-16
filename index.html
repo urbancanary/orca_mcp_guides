@@ -49,6 +49,17 @@
       align-self: flex-start;
     }
     .content { flex: 1; min-width: 0; }
+
+    /* Per-mode sidebar width: Dashboard holds the 6 question boxes, so it needs
+       room; Single/Guides stay narrow to give the content column the most width. */
+    body[data-mode="dashboard"] .sidebar { flex-basis: 312px; position: static; }
+    body[data-mode="dashboard"] .side-context { display: none; }
+
+    /* Dashboard controls live in the sidebar (questions + Run + toggles) */
+    .dash-side { display: none; }
+    body[data-mode="dashboard"] .sidebar .dash-side { display: block; margin-top: 16px; }
+    .sidebar .dash-side .panel { border: none; padding: 0; background: none; box-shadow: none; }
+    .sidebar .dash-side .panel h2 { font-size: 17px; }
     /* Per-tab context blurb — fills the sidebar space, specific to the active mode */
     .side-context {
       margin: 18px 2px 0;
@@ -60,8 +71,7 @@
     }
 
     /* Single query keeps its comfortable measure; Dashboard/Guides fill the column */
-    #mode-single,
-    .single-chrome { max-width: 1100px; }
+    #mode-single { max-width: 1100px; }
 
     /* Embedded in the Orion shell (?orion=true): the shell provides the chrome,
        so drop the app's own masthead/badge/explainer/endpoint affordance. */
@@ -140,10 +150,20 @@
     .sidebar .subhead { font-size: 13.5px; line-height: 1.45; margin: 0 0 14px; }
     .sidebar .badge { display: inline-block; margin-bottom: 18px; }
 
-    /* Single-query chrome (Try-asking + explainer): shown only in Single query */
+    /* Single-query chrome (Try-asking + explainer): lives in the sidebar, shown
+       only in Single query, so the content column starts with Query/Results at
+       the top (like Dashboard & Guides). */
     .single-chrome { display: none; }
-    body[data-mode="single"] .single-chrome { display: block; margin-bottom: 6px; }
-    .single-chrome .try-card { width: auto; margin-bottom: 14px; }
+    body[data-mode="single"] .sidebar .single-chrome {
+      display: block;
+      margin-top: 16px;
+      padding-top: 14px;
+      border-top: 1px solid var(--line);
+    }
+    .sidebar .single-chrome .try-card { width: auto; border: none; padding: 0; margin: 0 0 12px; background: none; }
+    .sidebar .single-chrome .try-chip { display: block; margin: 0 0 5px; text-align: left; }
+    .sidebar .single-chrome .tldr { font-size: 12.5px; }
+    .sidebar .single-chrome .tldr > summary { font-size: 12.5px; }
 
     .grid {
       display: grid;
@@ -757,8 +777,7 @@
     button:disabled { cursor: not-allowed; opacity: .55; }
 
     /* I. Centre the constrained single-query column on wide screens */
-    #mode-single,
-    .single-chrome {
+    #mode-single {
       margin-left: auto;
       margin-right: auto;
     }
@@ -812,9 +831,6 @@
       </nav>
       <!-- Per-tab context: lower in the sidebar, specific to the active mode -->
       <p class="side-context" id="sideContext"></p>
-    </aside>
-
-    <div class="content">
     <!-- Single-query chrome: shown only in Single query (see body[data-mode] CSS) -->
     <div class="single-chrome">
       <div class="try-card">
@@ -824,7 +840,7 @@
         <button class="try-chip" onclick="askExample('How much cash is in the Wealthy Nations fund?')">How much cash?</button>
         <button class="try-chip" onclick="askExample('What is the longest maturity bond in the Wealthy Nations fund?')">Longest-dated bond</button>
       </div>
-      <details class="tldr" open>
+      <details class="tldr">
         <summary>New here? 10-second explainer</summary>
         <div class="tldr-body">
           <p><strong>You ask a question in plain English. You get back a finished answer</strong> — a chart, a table, or a short write-up — already in your brand colours, ready to use.</p>
@@ -838,6 +854,37 @@
         </div>
       </details>
     </div>
+      <div class="dash-side">
+        <div class="panel">
+          <h2>Your dashboard — 6 questions</h2>
+          <p class="note">Edit any question, then press Run. Each panel on the right fills with a finished, on-brand component. This whole dashboard is just six questions — you didn't build a single chart.</p>
+          <div id="dashQueryList"></div>
+          <div class="actions">
+            <button id="dashRun">Run ▶</button>
+            <div class="answer-toggle" id="answerToggle" role="group" aria-label="Answer detail level">
+              <button type="button" class="at-opt active" data-view="brief">Brief</button>
+              <button type="button" class="at-opt" data-view="enhanced">Enhanced</button>
+            </div>
+          </div>
+          <div class="actions" style="margin-top:8px; align-items:center; gap:10px;">
+            <span style="font-size:13px; font-weight:600; color:var(--muted,#5b6472);">Data as of</span>
+            <div class="answer-toggle" id="dateToggle" role="group" aria-label="Data as-of date">
+              <button type="button" class="at-opt active" data-asof="">Now</button>
+              <button type="button" class="at-opt" data-asof="EOM" id="eomBtn">End of last month</button>
+            </div>
+          </div>
+          <p class="note" style="margin-top:8px">Each panel shows a one-line answer above its component. Toggle <strong>Brief</strong> ↔ <strong>Enhanced</strong> for more context (no re-run). Flip <strong>Data as of</strong> to see the same questions answered at a past date — the numbers change because Orca re-derives them point-in-time.</p>
+          <style>
+            .answer-toggle { display:inline-flex; border:1px solid var(--line,#d5d9e0); border-radius:8px; overflow:hidden; vertical-align:middle; margin-left:10px; }
+            .answer-toggle .at-opt { background:transparent; border:0; padding:7px 14px; font-size:13px; cursor:pointer; color:var(--muted,#5b6472); }
+            .answer-toggle .at-opt.active { background:var(--brand,#1f3a5f); color:#fff; }
+            .dash-cell-answer { font-size:13.5px; line-height:1.45; color:var(--text,#1f2733); padding:2px 0 10px; border-bottom:1px solid var(--line,#eef0f3); margin-bottom:10px; }
+          </style>
+        </div>
+      </div>
+    </aside>
+
+    <div class="content">
 
     <div id="mode-single" style="display:none">
     <section class="grid">
@@ -1030,41 +1077,12 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
     </div><!-- /#mode-single -->
 
     <div id="mode-dashboard">
-      <section class="dash">
-        <div class="panel">
-          <h2>Your dashboard — 6 questions</h2>
-          <p class="note">Edit any question, then press Run. Each panel on the right fills with a finished, on-brand component. This whole dashboard is just six questions — you didn't build a single chart.</p>
-          <div id="dashQueryList"></div>
-          <div class="actions">
-            <button id="dashRun">Run ▶</button>
-            <div class="answer-toggle" id="answerToggle" role="group" aria-label="Answer detail level">
-              <button type="button" class="at-opt active" data-view="brief">Brief</button>
-              <button type="button" class="at-opt" data-view="enhanced">Enhanced</button>
-            </div>
-          </div>
-          <div class="actions" style="margin-top:8px; align-items:center; gap:10px;">
-            <span style="font-size:13px; font-weight:600; color:var(--muted,#5b6472);">Data as of</span>
-            <div class="answer-toggle" id="dateToggle" role="group" aria-label="Data as-of date">
-              <button type="button" class="at-opt active" data-asof="">Now</button>
-              <button type="button" class="at-opt" data-asof="EOM" id="eomBtn">End of last month</button>
-            </div>
-          </div>
-          <p class="note" style="margin-top:8px">Each panel shows a one-line answer above its component. Toggle <strong>Brief</strong> ↔ <strong>Enhanced</strong> for more context (no re-run). Flip <strong>Data as of</strong> to see the same questions answered at a past date — the numbers change because Orca re-derives them point-in-time.</p>
-          <style>
-            .answer-toggle { display:inline-flex; border:1px solid var(--line,#d5d9e0); border-radius:8px; overflow:hidden; vertical-align:middle; margin-left:10px; }
-            .answer-toggle .at-opt { background:transparent; border:0; padding:7px 14px; font-size:13px; cursor:pointer; color:var(--muted,#5b6472); }
-            .answer-toggle .at-opt.active { background:var(--brand,#1f3a5f); color:#fff; }
-            .dash-cell-answer { font-size:13.5px; line-height:1.45; color:var(--text,#1f2733); padding:2px 0 10px; border-bottom:1px solid var(--line,#eef0f3); margin-bottom:10px; }
-          </style>
+      <div class="panel">
+        <h2>Dashboard <span id="dashAsOfLabel" style="font-size:13px; font-weight:500; color:var(--muted,#5b6472);"></span></h2>
+        <div id="dashGrid" class="dash-grid">
+          <div class="empty-table">Edit the six questions in the sidebar and press Run — each panel fills with a finished component, in your brand colours.</div>
         </div>
-
-        <div class="panel">
-          <h2>Dashboard <span id="dashAsOfLabel" style="font-size:13px; font-weight:500; color:var(--muted,#5b6472);"></span></h2>
-          <div id="dashGrid" class="dash-grid">
-            <div class="empty-table">Edit the six questions on the left and press Run — each panel fills with a finished component, in your brand colours.</div>
-          </div>
-        </div>
-      </section>
+      </div>
     </div><!-- /#mode-dashboard -->
 
     <div id="mode-guides" style="display:none">
