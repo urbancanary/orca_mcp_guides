@@ -1691,10 +1691,13 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
           // so override the skill's answer line to match the pie exactly.
           if (ans) {
             const cats = ser.data.filter(x => !x.cash);  // count categories, not the Cash slice
-            const top = cats.slice(0, 2).map(x => `${x.label} ${x.value}%`).join(" and ");
             const noun = /rating/i.test(ser.title) ? "rating bands" : "countries";
-            ans.answer = `${top} lead across ${cats.length} ${noun}.`;
-            ans.answer_detail = ans.answer;
+            const top2 = cats.slice(0, 2).map(x => `${x.label} ${x.value}%`).join(" and ");
+            ans.answer = `${top2} lead across ${cats.length} ${noun}.`;  // Brief
+            // Enhanced: top-3 + the cash slice for context
+            const top3 = cats.slice(0, 3).map(x => `${x.label} ${x.value}%`).join(", ");
+            const cashSlice = ser.data.find(x => x.cash);
+            ans.answer_detail = `Top exposures: ${top3}${cashSlice ? `; Cash ${cashSlice.value}%` : ""} — across ${cats.length} ${noun}.`;
           }
           const chartId = `chart-${chartSeq++}`;
           pendingCharts.push({ id: chartId, block: { chart_type: "pie", title: ser.title, data: ser.data } });
