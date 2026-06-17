@@ -94,6 +94,17 @@
                 opacity: 0; transition: opacity .45s ease; }
     .fs-frame.shown { opacity: 1; }
     .fs-frame.empty { display: none; }
+    /* Generated-file download card (PPTX/PDF returned by Orca) */
+    .gen-file { display: flex; gap: 14px; align-items: flex-start; border: 1px solid var(--line, #d5d9e0);
+                border-radius: 10px; padding: 18px; background: #fff; max-width: 560px; }
+    .gen-file-icon { font-size: 30px; line-height: 1; }
+    .gen-file-name { font-weight: 700; font-size: 15px; color: var(--text, #1f2733); }
+    .gen-file-meta { font-size: 12px; color: var(--muted, #5b6472); margin-top: 2px; }
+    .gen-file-note { font-size: 13px; color: var(--text, #1f2733); margin-top: 8px; line-height: 1.45; }
+    /* Fund update prose */
+    .fu-result { max-width: 760px; }
+    .fu-result .block-text { font-size: 15px; line-height: 1.62; color: var(--text, #1f2733); white-space: pre-wrap; }
+    body[data-mode="fundupdate"] .sidebar { display: none; }
 
     /* Dashboard's controls make the sidebar tall — let it scroll with the page */
     body[data-mode="dashboard"] .sidebar { position: static; }
@@ -991,6 +1002,7 @@
         <button class="mode-btn" data-mode="single">Single query</button>
         <button class="mode-btn active" data-mode="dashboard">Dashboard</button>
         <button class="mode-btn" data-mode="factsheets">Factsheets</button>
+        <button class="mode-btn" data-mode="fundupdate">Fund update</button>
         <button class="mode-btn" data-mode="guides">Guides</button>
       </nav>
     </header>
@@ -1273,6 +1285,19 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
         </div>
       </div>
     </div><!-- /#mode-factsheets -->
+
+    <div id="mode-fundupdate" style="display:none">
+      <h2 class="fs-h">Fund update, written on demand</h2>
+      <p class="fs-intro">Not a stored note and not a slide deck. Ask Orca pulls the latest portfolio and <strong>writes a short client update in the fund's house voice</strong>, every time. Pick a fund:</p>
+      <div class="fs-questions">
+        <button class="fs-q" data-fund="wnbf" onclick="askFundUpdate('wnbf')">Write a fund update for the Wealthy Nations Bond Fund</button>
+        <button class="fs-q" data-fund="rmb" onclick="askFundUpdate('rmb')">Write a fund update for the China RMB Income fund</button>
+      </div>
+      <div class="fs-stage">
+        <div id="fuBuild" class="fs-build" aria-live="polite"></div>
+        <div id="fuResult" class="fu-result"></div>
+      </div>
+    </div><!-- /#mode-fundupdate -->
 
     <div id="mode-guides" style="display:none">
       <div id="guideTabs" class="guide-tabs"></div>
@@ -1756,9 +1781,63 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
       }).join("");
     }
 
+    // A generated file (e.g. a PPTX deck Orca built) arrives as { filename, format,
+    // size_bytes, base64_content }. Find it whether it's at the top level, under
+    // .data, or double-wrapped under .data.data.
+    function findGeneratedFile(response) {
+      const cands = [response, response && response.data, response && response.data && response.data.data];
+      for (const c of cands) {
+        if (c && typeof c.base64_content === "string" && c.base64_content.length) return c;
+      }
+      return null;
+    }
+    const FILE_MIME = {
+      pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+      docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      pdf: "application/pdf",
+    };
+    let _lastGenFile = null;
+    function downloadGenFile() {
+      if (!_lastGenFile) return;
+      const bin = atob(_lastGenFile.base64_content);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      const blob = new Blob([bytes], { type: FILE_MIME[_lastGenFile.format] || "application/octet-stream" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = _lastGenFile.filename || ("download." + (_lastGenFile.format || "bin"));
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+    }
+    function renderFileCard(f, response) {
+      _lastGenFile = f;
+      const kb = f.size_bytes ? Math.round(f.size_bytes / 1024).toLocaleString() + " KB" : "";
+      const note = (response && (response.answer_detail || response.answer)) || "";
+      return `
+        <div class="gen-file">
+          <div class="gen-file-icon">📄</div>
+          <div class="gen-file-body">
+            <div class="gen-file-name">${escapeHtml(f.filename || "Generated file")}</div>
+            <div class="gen-file-meta">${escapeHtml((f.format || "").toUpperCase())}${kb ? " · " + kb : ""}</div>
+            ${note ? `<div class="gen-file-note">${escapeHtml(note)}</div>` : ""}
+            <button class="fs-q" style="margin-top:10px" onclick="downloadGenFile()">⬇ Download</button>
+          </div>
+        </div>`;
+    }
+
     function renderTables(response) {
       const tablesDiv = document.getElementById("tables");
       const iframe = document.getElementById("widget-iframe");
+
+      // 0. A generated document (PPTX/PDF/…) — offer a download instead of dumping base64.
+      const genFile = findGeneratedFile(response);
+      if (genFile) {
+        tablesDiv.style.display = "block";
+        if (iframe) iframe.style.display = "none";
+        tablesDiv.innerHTML = renderFileCard(genFile, response);
+        return;
+      }
 
       // 1. Prioritize standardized display blocks (semantic intent)
       if (response && response.display) {
@@ -2856,8 +2935,62 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
       single: "Ask anything about the fund in plain English — get back a finished chart, table, or summary, already in your brand colours.",
       dashboard: "Three numbered queries — two on bonds, one on equities (Reggie/EDGAR). Edit any question and press Run; each panel fills with a finished component.",
       factsheets: "Ask for a fund by name and Orca returns its full marketing factsheet, branded and ready to share.",
+      fundupdate: "Ask for a fund and Orca writes a short client update in its house voice, from the latest portfolio.",
       guides: "How Ask Orca works. Read it as notes, or flip to slides.",
     };
+
+    // Fund update: send a prose-intent query to Orca and render the returned text block.
+    const FUND_UPDATE = {
+      wnbf: { label: "Wealthy Nations Bond Fund",
+              query: "Write a short client fund update for the Wealthy Nations Bond Fund",
+              steps: ["Routing your question to Orca…", "Pulling the latest Wealthy Nations portfolio from Athena…",
+                      "Reading duration, yield, ratings and country mix…", "Writing the update in the fund's voice…"] },
+      rmb:  { label: "China RMB Income",
+              query: "Write a short client fund update for the Guinness China RMB Income fund",
+              steps: ["Routing your question to Orca…", "Pulling the latest China RMB Income portfolio from Athena…",
+                      "Reading duration, yield, ratings and country mix…", "Writing the update in the fund's voice…"] },
+    };
+    let fuBusy = false;
+    async function askFundUpdate(fund) {
+      const cfg = FUND_UPDATE[fund];
+      const log = document.getElementById("fuBuild");
+      const out = document.getElementById("fuResult");
+      if (!cfg || !log || !out || fuBusy) return;
+      fuBusy = true;
+      document.querySelectorAll('#mode-fundupdate .fs-q').forEach(b => {
+        b.classList.toggle("active", b.getAttribute("data-fund") === fund); b.disabled = true;
+      });
+      out.innerHTML = "";
+      log.innerHTML = ""; log.classList.add("on");
+      const rows = cfg.steps.map(t => {
+        const d = document.createElement("div"); d.className = "fs-step";
+        d.innerHTML = `<span class="spin">▸</span> ${t}`; log.appendChild(d); return d;
+      });
+      const STEP_MS = 420;
+      cfg.steps.forEach((_, i) => setTimeout(() => {
+        rows[i].classList.add("show");
+        if (i > 0) rows[i-1].innerHTML = rows[i-1].innerHTML.replace('class="spin">▸','class="tick">✓');
+      }, i * STEP_MS));
+
+      const payload = { tool: "orca_query", args: { query: cfg.query, client_id: (window.SITE && SITE.client_id) || "guinness" }, include_display: true };
+      try {
+        const res = await fetch(ENDPOINT, { method: "POST", credentials: FETCH_CREDS, headers: buildHeaders(), body: JSON.stringify(payload) });
+        const data = JSON.parse(await res.text());
+        rows[rows.length-1].innerHTML = rows[rows.length-1].innerHTML.replace('class="spin">▸','class="tick">✓');
+        log.classList.remove("on");
+        const gen = findGeneratedFile(data);
+        if (gen) { out.innerHTML = renderFileCard(gen, data); }
+        else if (data.display && Array.isArray(data.display.blocks)) { out.innerHTML = renderDisplayBlocks(data.display); processPendingCharts(); }
+        else if (data.answer || (data.data && data.data.update)) { out.innerHTML = `<div class="block-text">${escapeHtml((data.data && data.data.update) || data.answer)}</div>`; }
+        else { out.innerHTML = `<div class="empty-table">No update was returned. Try again, or see the Single query tab.</div>`; }
+      } catch (e) {
+        log.classList.remove("on");
+        out.innerHTML = `<div class="empty-table">Couldn't fetch the update (${escapeHtml(e.message)}).</div>`;
+      } finally {
+        document.querySelectorAll('#mode-fundupdate .fs-q').forEach(b => { b.disabled = false; });
+        fuBusy = false;
+      }
+    }
 
     // Map each factsheet question to its standalone HTML doc, rendered in an isolated iframe.
     // The factsheet is loaded with ?animate=1 so its own sections build in after the step log.
@@ -2923,7 +3056,7 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
       const ctx = document.getElementById("sideContext");
       if (ctx) ctx.textContent = SIDE_CONTEXT[mode] || "";
       document.querySelectorAll(".mode-btn").forEach(b => b.classList.toggle("active", b.getAttribute("data-mode") === mode));
-      ["single", "dashboard", "factsheets", "guides"].forEach(m => {
+      ["single", "dashboard", "factsheets", "fundupdate", "guides"].forEach(m => {
         const el = document.getElementById("mode-" + m);
         if (el) el.style.display = m === mode ? "" : "none";
       });
