@@ -77,7 +77,9 @@
 
     /* Dashboard controls live in the sidebar (questions + Run + toggles) */
     .dash-side { display: none; }
-    body[data-mode="dashboard"] .sidebar .dash-side { display: block; margin-top: 16px; }
+    /* Align the sidebar's first line with the top of the dashboard panel (not
+       16px below it) so the whole sidebar — including the bottom note — fits. */
+    body[data-mode="dashboard"] .sidebar .dash-side { display: block; margin-top: 0; }
     .sidebar .dash-side .panel { border: none; padding: 0; background: none; box-shadow: none; }
     .sidebar .dash-side .panel h2 { font-size: 17px; }
     /* Per-tab context blurb — fills the sidebar space, specific to the active mode */
@@ -187,11 +189,15 @@
 
     .grid {
       display: grid;
-      grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+      grid-template-columns: minmax(0, 0.68fr) minmax(0, 1.32fr); /* narrow question, wide results */
       gap: 20px;
       margin-top: 24px;
       align-items: start;
     }
+    /* Narrow result tables (e.g. Country Allocation) should fit the results
+       column, not be forced to 760px (that rule exists for wide holdings tables,
+       which still scroll). */
+    #mode-single .table-scroll table { min-width: 0; }
 
     .panel {
       background: var(--panel);
@@ -651,9 +657,13 @@
     }
 
     /* Guides mode — the central Iris doc-viewer, embedded by reference (no local copy) */
+    .guide-tabs {
+      display: flex; gap: 6px; margin-bottom: 14px;
+      border-bottom: 1px solid var(--line);
+    }
     .guide-frame {
       width: 100%;
-      height: calc(100vh - 70px);
+      height: calc(100vh - 130px);
       min-height: 560px;
       border: 1px solid var(--line);
       border-radius: 10px;
@@ -661,6 +671,35 @@
       display: block;
     }
     body.embedded .guide-frame { height: calc(100vh - 40px); }
+
+    /* MAIA transition — in-app editable readiness matrix (a local "guide") */
+    .maia-panel { padding: 2px 2px 28px; }
+    .maia-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; margin-bottom: 14px; }
+    .maia-fundtabs { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+    .maia-fundtab { padding: 7px 14px; border: 1px solid var(--line); border-radius: 8px; background: #fff; font-size: 13.5px; font-weight: 600; color: var(--muted); cursor: pointer; }
+    .maia-fundtab:hover { color: var(--text); }
+    .maia-fundtab.active { background: var(--brand); color: #fff; border-color: var(--brand); }
+    .maia-summary { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; font-size: 13px; color: var(--text); margin-bottom: 14px; }
+    .maia-pill { padding: 3px 11px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+    .maia-pill.on { background: #e7f6ec; color: #137a3a; }
+    .maia-pill.off { background: #fdeaea; color: #b42318; }
+    .maia-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .maia-table th { text-align: center; font-size: 11px; text-transform: uppercase; letter-spacing: .03em; color: var(--muted); padding: 6px 8px; border-bottom: 1px solid var(--line); }
+    .maia-table th:first-child { text-align: left; }
+    .maia-table td { padding: 5px 8px; border-bottom: 1px solid var(--soft, #eef0f3); }
+    .maia-field { color: var(--text); }
+    .maia-cell { text-align: center; width: 92px; }
+    .maia-group td { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; font-weight: 700; color: var(--brand); background: var(--soft, #f6f8fc); padding-top: 10px; padding-bottom: 6px; }
+    .maia-dot { border: 0; background: none; cursor: pointer; font-size: 16px; line-height: 1; width: 32px; height: 24px; border-radius: 6px; padding: 0; }
+    .maia-dot.on { color: #16a34a; }   /* green — available / needed */
+    .maia-dot.off { color: #dc2626; }  /* red — missing / not needed */
+    .maia-dot:hover { background: var(--soft, #f1f4f9); }
+    .maia-legend { font-size: 12px; color: var(--muted); margin-top: 12px; }
+    .maia-noteh { text-align: left !important; }
+    .maia-notec { min-width: 220px; }
+    .maia-note { width: 100%; border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; font-size: 12.5px; color: var(--text); background: #fff; }
+    .maia-note:focus { outline: none; border-color: var(--brand); }
+    .maia-fundnote { background: #fff7e6; border: 1px solid #f5d99a; color: #8a5a00; border-radius: 8px; padding: 9px 13px; font-size: 13px; margin-bottom: 14px; }
 
     /* Narrow screens: sidebar stacks on top, content below */
     @media (max-width: 760px) {
@@ -699,7 +738,9 @@
       margin-top: 9px;
     }
 
-    .dash-q { min-height: 0; }
+    /* Grow to fit the question — natively in Chrome (field-sizing), JS-autosized
+       elsewhere — instead of an inner scrollbar. */
+    .dash-q { min-height: 0; resize: none; overflow: hidden; field-sizing: content; }
 
     /* Responses fill the right side: 2 columns, each widget expands to its
        own content (demo — fine if the grid runs off-screen and the page scrolls). */
@@ -707,42 +748,93 @@
        columns with no wasted-space gaps; the page flows down. Nothing scrolls
        inside a widget — content fits by narrowing/expanding — so the layout is
        PDF-friendly (the output we ultimately replace can't scroll). */
-    .dash-grid {
-      column-count: 2;
-      column-gap: 14px;
+    /* Horizontal tab bar — ① ② ③ across the top of the response area. */
+    .dash-tabs {
+      display: flex; gap: 6px; margin-bottom: 16px;
+      border-bottom: 1px solid var(--line);
     }
-    .dash-grid > .empty-table { column-span: all; }
+    .dash-tab {
+      display: flex; align-items: center; gap: 8px;
+      padding: 9px 16px 11px; cursor: pointer;
+      font-size: 13.5px; font-weight: 600; color: var(--muted);
+      border: 0; background: none; border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+    }
+    .dash-tab:hover { color: var(--text); }
+    .dash-tab.active { color: var(--brand); border-bottom-color: var(--brand); }
+    .dash-tab .tnum {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 20px; height: 20px; border-radius: 50%;
+      background: var(--line); color: var(--muted); font-size: 11px; font-weight: 700;
+    }
+    .dash-tab.active .tnum { background: var(--brand); color: #fff; }
+
+    /* 2-up grid: each question's finished component sits in one of two columns;
+       wide cells (full holdings / equity tables) span both. CSS Grid keeps the
+       wide-span clean — no multi-column gaps. */
+    .dash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
+    .dash-grid > .empty-table { grid-column: 1 / -1; }
 
     .dash-cell {
       border: 1px solid var(--line);
       border-radius: 8px;
-      padding: 12px;
+      padding: 14px 16px;
       background: #fff;
-      break-inside: avoid;       /* keep a widget whole within a column */
-      margin-bottom: 14px;       /* gap to the widget packed below it */
+      min-width: 0;            /* let tables shrink inside the grid track */
     }
+    .dash-cell.wide { grid-column: 1 / -1; }   /* full holdings / equity tables */
 
     .dash-cell-q {
-      flex: 0 0 auto;
-      font-size: 12px;
-      font-weight: 700;
-      color: var(--brand);
-      margin-bottom: 8px;
-      padding-bottom: 6px;
+      font-size: 11px; font-weight: 600; color: var(--muted);
+      text-transform: uppercase; letter-spacing: .03em;
+      margin-bottom: 8px; padding-bottom: 6px;
       border-bottom: 1px solid var(--line);
     }
-
-    /* Charts get a sensible fixed height; tables/factsheets show in full */
-    .dash-cell .chart-container {
-      height: 280px;
-      margin-bottom: 0;
-      padding: 8px;
-    }
-
-    .dash-cell .table-scroll { margin-bottom: 0; overflow-x: visible; }
-    .dash-cell .table-scroll table { min-width: 0; } /* fit the column; no inner h-scroll competing with the board */
-
+    .dash-cell-answer { font-size: 13px; line-height: 1.4; color: var(--text); margin-bottom: 8px; }
+    .dash-cell .chart-container { height: 260px; margin-bottom: 0; padding: 6px; }
     .dash-cell .table-title { margin-top: 0; }
+
+    /* Traffic-light signal dots (equity tab, from Reggie/EDGAR) */
+    .sig { display: inline-block; width: 11px; height: 11px; border-radius: 50%; vertical-align: middle; }
+    .sig-green { background: #16a34a; }
+    .sig-amber { background: #d99e00; }
+    .sig-red   { background: #dc2626; }
+    .sig-grey  { background: #c2c8d0; }
+    .sig-legend { font-size: 11.5px; color: var(--muted); margin-top: 8px; }
+    .dash-src { font-size: 12px; color: var(--muted); margin-top: 10px; }
+    .dash-src a { color: var(--brand); }
+
+    /* 10-K filing summary cards (equities tab) */
+    .filing-head { font-size: 13.5px; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+    .filing-tk { font-weight: 700; color: var(--brand); }
+    .filing-meta { color: var(--muted); font-size: 12px; }
+    .filing-body { font-size: 13.5px; line-height: 1.5; color: var(--text); }
+    .filing-list { margin: 0; padding-left: 18px; }
+    .filing-list li { margin-bottom: 7px; }
+
+    /* Holdings / equity tables inside a cell */
+    .dash-cell .table-scroll { overflow-x: auto; margin-bottom: 0; }
+    .dash-cell table { font-size: 12.5px; width: 100%; }
+    .dash-cell th {
+      font-size: 11px; text-transform: uppercase; letter-spacing: .02em;
+      color: var(--muted); white-space: nowrap;
+    }
+    .dash-cell td.num, .dash-cell th.num { text-align: right; white-space: nowrap; }
+    .dash-cell td.ctr, .dash-cell th.ctr { text-align: center; }
+    .dash-cell td.mono { font-variant-numeric: tabular-nums; font-size: 12px; white-space: nowrap; }
+    .dash-cell .tot-row td {
+      font-weight: 700; border-top: 2px solid var(--line);
+      background: var(--soft, #f6f8fc);
+    }
+    /* Mini-tables (the 2-up cells) use auto layout at width:100%, so they always
+       fit their grid cell — every column, including the asked-about metric, stays
+       visible with no sideways scroll. Only the full-width holdings/equity table
+       may scroll sideways. */
+    .dash-cell:not(.wide) .table-scroll { overflow-x: hidden; }
+    /* Override the global `.table-scroll table { min-width: 760px }` (which exists
+       so the WIDE holdings table can scroll) — mini-tables must shrink to fit. */
+    .dash-cell:not(.wide) table { min-width: 0; width: 100%; }
+    .dash-cell:not(.wide) td, .dash-cell:not(.wide) th { white-space: nowrap; }
 
     @media (max-width: 860px) {
       .dash { grid-template-columns: 1fr; }
@@ -890,25 +982,16 @@
     </div>
       <div class="dash-side">
         <div class="panel">
-          <h2>Your dashboard — 6 questions</h2>
-          <p class="note">Edit any question, then press Run. Each panel on the right fills with a finished, on-brand component. This whole dashboard is just six questions — you didn't build a single chart.</p>
+          <h2>Your dashboard — 3 tabs</h2>
+          <p class="note">Three tabs show the range of what you can ask: <strong>① Bonds · Allocation</strong>, <strong>② Bonds · Holdings</strong>, and <strong>③ Equities · 10-K fundamentals</strong> — raw company filing data (AI 10-K summaries + key financials) from a different engine (Reggie / EDGAR) entirely. Each tab has its own questions below; switch tabs to swap them. Edit any question and press Run, and every question fills with a finished, on-brand component. You didn't build a single chart or table.</p>
           <div id="dashQueryList"></div>
-          <div class="actions">
-            <button id="dashRun">Run ▶</button>
-            <div class="answer-toggle" id="answerToggle" role="group" aria-label="Answer detail level">
-              <button type="button" class="at-opt active" data-view="brief">Brief</button>
-              <button type="button" class="at-opt" data-view="enhanced">Enhanced</button>
-            </div>
-          </div>
-          <div class="actions" style="margin-top:8px; align-items:center; gap:10px;">
-            <span style="font-size:13px; font-weight:600; color:var(--muted,#5b6472);">Data as of</span>
-            <div class="answer-toggle" id="dateToggle" role="group" aria-label="Data as-of date">
-              <button type="button" class="at-opt active" data-asof="">Now</button>
-              <button type="button" class="at-opt" data-asof="EOM" id="eomBtn">End of last month</button>
-            </div>
-          </div>
-          <p class="note" style="margin-top:8px">Each panel shows a one-line answer above its component. Toggle <strong>Brief</strong> ↔ <strong>Enhanced</strong> for more context (no re-run). Flip <strong>Data as of</strong> to see the same questions answered at a past date — the numbers change because Orca re-derives them point-in-time.</p>
+          <p class="note" style="margin-top:10px">Run, <strong>Brief ↔ Enhanced</strong>, and <strong>Data as of</strong> are on the top line above the panels. Brief ↔ Enhanced adds context with no re-run; Data as of re-answers the same questions at a past date — the numbers change because Orca re-derives them point-in-time.</p>
           <style>
+            .dash-topline { display:flex; justify-content:space-between; align-items:flex-end; gap:16px; flex-wrap:wrap; border-bottom:1px solid var(--line,#d5d9e0); margin-bottom:16px; }
+            .dash-topline .dash-tabs { border-bottom:0; margin-bottom:0; }
+            .dash-controls { display:flex; align-items:center; gap:10px; padding-bottom:7px; flex-wrap:wrap; }
+            .dash-controls #dashRun { margin:0; }
+            .ctl-label { font-size:13px; font-weight:600; color:var(--muted,#5b6472); margin-left:4px; }
             .answer-toggle { display:inline-flex; border:1px solid var(--line,#d5d9e0); border-radius:8px; overflow:hidden; vertical-align:middle; margin-left:10px; }
             .answer-toggle .at-opt { background:transparent; border:0; padding:7px 14px; font-size:13px; cursor:pointer; color:var(--muted,#5b6472); }
             .answer-toggle .at-opt.active { background:var(--brand,#1f3a5f); color:#fff; }
@@ -1113,14 +1196,31 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
     <div id="mode-dashboard">
       <div class="panel">
         <h2>Dashboard <span id="dashAsOfLabel" style="font-size:13px; font-weight:500; color:var(--muted,#5b6472);"></span></h2>
+        <div class="dash-topline">
+          <div id="dashTabs" class="dash-tabs"></div>
+          <div class="dash-controls">
+            <button id="dashRun">Run ▶</button>
+            <div class="answer-toggle" id="answerToggle" role="group" aria-label="Answer detail level">
+              <button type="button" class="at-opt active" data-view="brief">Brief</button>
+              <button type="button" class="at-opt" data-view="enhanced">Enhanced</button>
+            </div>
+            <span class="ctl-label">Data as of</span>
+            <div class="answer-toggle" id="dateToggle" role="group" aria-label="Data as-of date">
+              <button type="button" class="at-opt active" data-asof="">Now</button>
+              <button type="button" class="at-opt" data-asof="EOM" id="eomBtn">End of last month</button>
+            </div>
+          </div>
+        </div>
         <div id="dashGrid" class="dash-grid">
-          <div class="empty-table">Edit the six questions in the sidebar and press Run — each panel fills with a finished component, in your brand colours.</div>
+          <div class="empty-table">Pick a tab and press Run — each question fills with a finished component, in your brand colours.</div>
         </div>
       </div>
     </div><!-- /#mode-dashboard -->
 
     <div id="mode-guides" style="display:none">
-      <iframe id="guideFrame" class="guide-frame" title="Ask Orca guide" loading="lazy"></iframe>
+      <div id="guideTabs" class="guide-tabs"></div>
+      <iframe id="guideFrame" class="guide-frame" title="Guide" loading="lazy"></iframe>
+      <div id="maiaPanel" class="maia-panel" style="display:none"></div>
     </div><!-- /#mode-guides -->
     </div><!-- /.content -->
     </div><!-- /.workspace -->
@@ -1154,6 +1254,13 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
     // echoes this origin + allows these headers (verified).
     const ORCA_API_KEY = 'jethro-prod';
     const ENDPOINT = ORCA_BASE + '/call';
+
+    // ── Reggie / EDGAR (equities) ───────────────────────────────
+    // Dashboard set 3 (equities) reads Reggie's public, read-only, CORS-enabled
+    // JSON route (the CIO Equity Dashboard, edgar_mcp). Structured holdings +
+    // traffic-light signals — no auth, browser-callable.
+    const REGGIE_BASE = 'https://reggie.x-trillion.com';
+    const REGGIE_ENDPOINT = REGGIE_BASE + '/api/fund-overview';
 
     // ── Branding ────────────────────────────────────────────────
     // Orca sends a `theme` in its response (display.theme), resolved
@@ -1207,32 +1314,64 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
     // Sienna — no code change, just the hostname. client_id drives
     // the brand theme Orca sends back (looked up centrally).
     //
-    // Each site carries its own 6-question dashboard set. Every question
-    // reliably returns Orca's full portfolio payload; the per-cell `pick`
-    // selects ONE slice so the six widgets are distinct, not six copies of
-    // the same dashboard. (Orca returns the whole dashboard for any portfolio
-    // query today — see backlog #1647 — so we compute once and slice client-side.)
-    const DASH_GUINNESS = [
-      { q: "Largest country exposures in the Wealthy Nations fund",            pick: { block: "Country Allocation", as: "chart", title: "Country exposure" } },
-      { q: "What is the total value of the Wealthy Nations fund?",             pick: { block: "Country Allocation", as: "table", title: "Value by country" } },
-      { q: "What is the average credit rating of the Wealthy Nations fund?",   pick: { block: "Rating Allocation",  as: "chart", title: "Credit rating mix" } },
-      { q: "Rating profile of the Wealthy Nations fund",                       pick: { block: "Rating Allocation",  as: "table", title: "Rating breakdown" } },
-      { q: "What is the duration of the Wealthy Nations fund?",                pick: { block: "Portfolio Snapshot", metrics: ["Yield", "Duration"], title: "Yield & duration" } },
-      { q: "How much cash is in the Wealthy Nations fund?",                    pick: { block: "Portfolio Snapshot", metrics: ["Cash %"], title: "Cash position" } }
-    ];
-    const DASH_SIENNA = [
-      { q: "Largest country exposures in the fund",          pick: { block: "Country Allocation", as: "chart", title: "Country exposure" } },
-      { q: "What is the total value of the fund?",           pick: { block: "Country Allocation", as: "table", title: "Value by country" } },
-      { q: "What is the average credit rating of the fund?", pick: { block: "Rating Allocation",  as: "chart", title: "Credit rating mix" } },
-      { q: "Rating profile of the fund",                     pick: { block: "Rating Allocation",  as: "table", title: "Rating breakdown" } },
-      { q: "What is the duration of the fund?",              pick: { block: "Portfolio Snapshot", metrics: ["Yield", "Duration"], title: "Yield & duration" } },
-      { q: "How much cash is in the fund?",                  pick: { block: "Portfolio Snapshot", metrics: ["Cash %"], title: "Cash position" } }
-    ];
+    // The dashboard is THREE horizontal tabs, each with ~6 example questions
+    // that show the RANGE of what marketing can ask. Switching a tab swaps the
+    // sidebar question list AND the response grid. Each tab makes ONE backend
+    // call and slices it client-side into one finished component per question
+    // (Orca returns the whole dashboard for any portfolio query — backlog #1647 —
+    //  so this is the natural shape):
+    //   ① Bonds · Allocation — one Orca allocation call, sliced by `pick`
+    //   ② Bonds · Holdings   — one Orca holdings call, sliced by `kind`/`sort`
+    //   ③ Equities · Reggie  — one Reggie/EDGAR JSON call, sliced by `kind`/`sort`
+    function buildTabs(fund) {
+      return [
+        {
+          n: 1, label: "Bonds · Allocation", source: "orca-alloc",
+          driverQ: `Largest country exposures and rating profile of ${fund}`,
+          cells: [
+            { q: `Largest country exposures in ${fund}`,           pick: { block: "Country Allocation", as: "chart", title: "Country exposure" } },
+            { q: `What is the value by country in ${fund}?`,       pick: { block: "Country Allocation", as: "table", title: "Value by country" } },
+            { q: `What is the average credit rating of ${fund}?`,  pick: { block: "Rating Allocation",  as: "chart", title: "Credit rating mix" } },
+            { q: `Rating profile of ${fund}`,                      pick: { block: "Rating Allocation",  as: "table", title: "Rating breakdown" } },
+            { q: `What is the yield and duration of ${fund}?`,     pick: { block: "Portfolio Snapshot", metrics: ["Yield", "Duration"], title: "Yield & duration" } },
+            { q: `How much cash is in ${fund}?`,                   pick: { block: "Portfolio Snapshot", metrics: ["Cash %"], title: "Cash position" } }
+          ]
+        },
+        {
+          n: 2, label: "Bonds · Holdings", source: "orca-holdings",
+          driverQ: `Show the full holdings table for ${fund}`,
+          cells: [
+            { q: `Show the full holdings table for ${fund}`, kind: "holdings-full", wide: true },
+            { q: `What are the top 10 holdings by weight?`,  kind: "bond-top", sort: "weight",   n: 10, title: "Top 10 by weight" },
+            { q: `Which bonds have the highest yield?`,      kind: "bond-top", sort: "ytw",      n: 8,  title: "Highest yield" },
+            { q: `Which bonds have the widest spread?`,      kind: "bond-top", sort: "spread",   n: 8,  title: "Widest spread" },
+            { q: `Which are the longest-dated bonds?`,       kind: "bond-top", sort: "duration", n: 8,  title: "Longest duration" },
+            { q: `Country split of the bond holdings`,       kind: "bond-country-pie", title: "Country split" }
+          ]
+        },
+        {
+          // Equities want the RAW FUNDAMENTAL filing data — the AI 10-K TL;DRs
+          // and key financials per company — not a fund-level signal roll-up.
+          // Each cell pulls one company's snapshot from Reggie / EDGAR.
+          n: 3, label: "Equities · 10-K fundamentals", source: "reggie-company",
+          cells: [
+            { q: `Johnson & Johnson — summarise the latest 10-K (~150 words)`, ticker: "JNJ",  kind: "filing", section: "business", wide: true },
+            { q: `J&J — key financials from the filing`,                        ticker: "JNJ",  kind: "financials" },
+            { q: `AbbVie — 10-K business summary`,                              ticker: "ABBV", kind: "filing", section: "business" },
+            { q: `BlackRock — what are the key risks in the 10-K?`,             ticker: "BLK",  kind: "filing", section: "risk" },
+            { q: `Cisco — what changed last year? (MD&A)`,                      ticker: "CSCO", kind: "filing", section: "mda" },
+            { q: `Texas Instruments — key financials`,                          ticker: "TXN",  kind: "financials" }
+          ]
+        }
+      ];
+    }
+    const TABS_GUINNESS = buildTabs("the Wealthy Nations fund");
+    const TABS_SIENNA   = buildTabs("the fund");
 
     const SITE_CONFIG = {
-      tom:    { label: "Tom",    client_id: "guinness", dash: DASH_GUINNESS },
-      sienna: { label: "Sienna", client_id: "sienna",   dash: DASH_SIENNA },
-      _default: { label: "you",  client_id: "guinness", dash: DASH_GUINNESS }
+      tom:    { label: "Tom",    client_id: "guinness", tabs: TABS_GUINNESS },
+      sienna: { label: "Sienna", client_id: "sienna",   tabs: TABS_SIENNA },
+      _default: { label: "you",  client_id: "guinness", tabs: TABS_GUINNESS }
     };
 
     function currentSite() {
@@ -1844,19 +1983,52 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
       button.addEventListener("click", () => { queryApiInput.value = button.textContent; });
     });
 
-    // ── Dashboard mode — six editable questions → an auto-built layout ──
-    // Each question returns Orca's full portfolio payload; the per-cell `pick`
-    // (from SITE.dash) selects ONE slice so the six widgets are distinct, not
-    // six copies of the same dashboard.
-    let dashPicks = [];
+    // ── Dashboard mode — three tabs, each ~6 editable questions ──
+    // Each tab makes ONE backend call and slices it into one finished component
+    // per question. The active tab drives both the sidebar question list and the
+    // response masonry. (Orca returns the whole dashboard for any portfolio query
+    // — backlog #1647 — so slicing client-side is the natural shape.)
+    let activeTab = 0;
 
+    // The tab bar: ① ② ③ across the top of the response area.
+    function buildDashTabs() {
+      const bar = document.getElementById("dashTabs");
+      bar.innerHTML = SITE.tabs.map((t, i) => `
+        <button type="button" class="dash-tab${i === activeTab ? " active" : ""}" data-tab="${i}">
+          <span class="tnum">${t.n}</span>${escapeHtml(t.label)}
+        </button>`).join("");
+      bar.querySelectorAll(".dash-tab").forEach(btn => {
+        btn.addEventListener("click", () => selectTab(+btn.dataset.tab));
+      });
+    }
+
+    // Grow a textarea to fit its content (no inner scroll).
+    function autosize(ta) { ta.style.height = "auto"; ta.style.height = ta.scrollHeight + "px"; }
+
+    // The sidebar question list for the active tab.
     function buildDashQueries() {
-      dashPicks = SITE.dash.map(d => d.pick);
-      document.getElementById("dashQueryList").innerHTML = SITE.dash.map((d, i) => `
+      const tab = SITE.tabs[activeTab];
+      document.getElementById("dashQueryList").innerHTML = tab.cells.map((c, i) => `
         <div class="dash-row">
           <div class="dash-num">${i + 1}</div>
-          <textarea class="dash-q" rows="2">${escapeHtml(d.q)}</textarea>
+          <textarea class="dash-q" rows="1">${escapeHtml(c.q)}</textarea>
         </div>`).join("");
+      // field-sizing (Chrome) auto-grows natively; for other browsers, autosize
+      // after layout (rAF) and on every edit.
+      const native = window.CSS && CSS.supports && CSS.supports("field-sizing", "content");
+      const tas = document.querySelectorAll("#dashQueryList .dash-q");
+      if (!native) {
+        requestAnimationFrame(() => tas.forEach((ta) => { autosize(ta); ta.addEventListener("input", () => autosize(ta)); }));
+      }
+    }
+
+    // Switch tab: swap the sidebar questions + tab highlight, then run it.
+    function selectTab(i) {
+      if (i === activeTab) return;
+      activeTab = i;
+      buildDashTabs();
+      buildDashQueries();
+      runDashboard();
     }
 
     // Filter a display to just the block(s) a cell wants. Falls back to the
@@ -2048,59 +2220,390 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
       });
     }
 
-    async function runDashboard() {
+    // Build the active tab's empty cards (one per question), return body els.
+    function buildCells(tab, labels) {
       const grid = document.getElementById("dashGrid");
-      const queries = Array.from(document.querySelectorAll(".dash-q")).map(t => t.value.trim());
       grid.innerHTML = "";
-      dashAnswers = [];
-      const bodies = queries.map((q) => {
-        const cell = document.createElement("div");
-        cell.className = "dash-cell";
-        cell.innerHTML = `<div class="dash-cell-q">${escapeHtml(q || "(empty)")}</div>` +
+      return tab.cells.map((c, i) => {
+        const card = document.createElement("div");
+        card.className = "dash-cell" + (c.wide ? " wide" : "");
+        card.innerHTML =
+          `<div class="dash-cell-q">${escapeHtml(labels[i] || c.q)}</div>` +
           `<div class="dash-cell-answer" style="display:none"></div>` +
           `<div class="dash-cell-body"><div class="loading-state">Loading…</div></div>`;
-        grid.appendChild(cell);
-        return cell.querySelector(".dash-cell-body");
+        grid.appendChild(card);
+        return card.querySelector(".dash-cell-body");
       });
+    }
 
+    // Run the ACTIVE tab: ONE backend call, sliced into one component per cell.
+    async function runDashboard() {
+      const tab = SITE.tabs[activeTab];
+      const labels = Array.from(document.querySelectorAll(".dash-q")).map(t => t.value.trim());
+      dashAnswers = [];
+      pendingCharts = [];
+      const bodies = buildCells(tab, labels);
       const runBtn = document.getElementById("dashRun");
       runBtn.disabled = true;
-      await Promise.all(queries.map(async (q, i) => {
-        if (!q) { bodies[i].innerHTML = '<div class="empty-table">Empty question.</div>'; return; }
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 60000);
-        try {
-          const res = await fetch(ENDPOINT, {
-            method: "POST",
-            credentials: FETCH_CREDS,
-            headers: buildHeaders(),
-            body: JSON.stringify({
-              tool: "orca_query",
-              args: { query: q, client_id: clientInput.value.trim() || SITE.client_id, answer_mode: true, ...(dashAsOf ? { as_of: dashAsOf } : {}) },
-              include_display: true
-            }),
-            signal: controller.signal
-          });
-          clearTimeout(timeoutId);
-          const env = await res.json();
-          // answer_mode fields sit at the TOP LEVEL of the orca_query envelope
-          // (env.answer / env.answer_detail / env.block). Older shapes nested them
-          // under env.data, so fall back to that for safety.
-          const top = (env && typeof env === "object") ? env : {};
-          const nested = (env && env.data && typeof env.data === "object") ? env.data : {};
-          dashAnswers[i] = {
-            answer: top.answer || nested.answer || "",
-            answer_detail: top.answer_detail || nested.answer_detail || top.answer || nested.answer || "",
-            block: top.block || nested.block || ""
-          };
-          renderDashboardCell(bodies[i], env, dashPicks[i], dashAnswers[i], q);
-        } catch (err) {
-          clearTimeout(timeoutId);
-          bodies[i].innerHTML = `<div class="empty-table">${err.name === "AbortError" ? "Timed out after 60s." : "Request failed."}</div>`;
+      let payload = null, ok = true, errMsg = "";
+      try {
+        if (tab.source === "reggie-company") {
+          // One /api/company/{ticker} call per distinct ticker (in parallel).
+          const tickers = [...new Set(tab.cells.map(c => c.ticker).filter(Boolean))];
+          const map = {};
+          await Promise.all(tickers.map(async (tk) => {
+            const controller = new AbortController();
+            const tid = setTimeout(() => controller.abort(), 30000);
+            try { const res = await fetch(`${REGGIE_BASE}/api/company/${encodeURIComponent(tk)}`, { signal: controller.signal }); map[tk] = await res.json(); }
+            catch (e) { map[tk] = { error: "unreachable" }; }
+            finally { clearTimeout(tid); }
+          }));
+          payload = { companies: map };
+        } else if (tab.source === "reggie") {
+          const controller = new AbortController();
+          const tid = setTimeout(() => controller.abort(), 30000);
+          try { const res = await fetch(REGGIE_ENDPOINT, { signal: controller.signal }); payload = await res.json(); }
+          catch (e) { ok = false; errMsg = "Reggie is unreachable right now."; }
+          finally { clearTimeout(tid); }
+        } else {
+          try { payload = await orcaQuery(tab.driverQ); }
+          catch (e) { ok = false; errMsg = (e && e.name === "AbortError") ? "Timed out." : "Couldn't reach Orca."; }
         }
+        const ctx = buildTabContext(tab, payload, ok, errMsg);
+        tab.cells.forEach((cell, i) => {
+          try { renderCell(bodies[i], cell, ctx, i); }
+          catch (e) { bodies[i].innerHTML = `<div class="empty-table">Couldn't render this one.</div>`; }
+        });
+        processPendingCharts();
         paintAnswers();
-      }));
-      runBtn.disabled = false;
+      } finally { runBtn.disabled = false; }
+    }
+
+    // Normalise a tab's single payload into the slices its cells need.
+    function buildTabContext(tab, payload, ok, errMsg) {
+      const ctx = { tab, ok, errMsg, source: tab.source };
+      if (!ok || !payload) { ctx.ok = false; return ctx; }
+      if (tab.source === "reggie-company") {
+        ctx.companies = payload.companies || {};   // per-cell handles a missing ticker
+      } else if (tab.source === "reggie") {
+        ctx.equities = Array.isArray(payload.holdings) ? payload.holdings : [];
+        ctx.summary = payload.summary || {};
+        ctx.asOf = payload.as_of || "";
+        ctx.count = payload.count || ctx.equities.length;
+        if (!ctx.equities.length) { ctx.ok = false; ctx.errMsg = payload.error || "No equity data yet."; }
+      } else {
+        ctx.display = payload.display;
+        let d = payload.data ? payload.data : payload;
+        if (d && d.data && typeof d.data === "object") d = d.data;
+        ctx.data = d || {};
+        ctx.answer = (payload.answer || (payload.data && payload.data.answer)) || "";
+        ctx.answer_detail = (payload.answer_detail || (payload.data && payload.data.answer_detail)) || ctx.answer;
+        if (tab.source === "orca-holdings") {
+          ctx.holdings = Array.isArray(ctx.data.holdings) ? ctx.data.holdings : [];
+          ctx.totals = ctx.data.totals || {};
+          ctx.count = ctx.data.count || ctx.holdings.length;
+          ctx.cashFmt = ctx.data.cash_fmt;
+        }
+      }
+      return ctx;
+    }
+
+    // Dispatch one cell to the right renderer.
+    function renderCell(body, cell, ctx, i) {
+      if (!ctx.ok) {
+        body.innerHTML = ctx.source === "reggie"
+          ? equityFallback(ctx.errMsg || "Unavailable.")
+          : `<div class="empty-table">${escapeHtml(ctx.errMsg || "Couldn't load this.")}</div>`;
+        return;
+      }
+      if (cell.pick) {                                   // Tab 1 — Orca allocation
+        dashAnswers[i] = { answer: "", answer_detail: "" };
+        renderDashboardCell(body, { display: ctx.display, data: { data: ctx.data } }, cell.pick, dashAnswers[i], cell.q);
+        return;
+      }
+      switch (cell.kind) {
+        case "holdings-full":    return renderHoldingsFull(body, ctx, i);
+        case "bond-top":         return renderBondTop(body, ctx, cell, i);
+        case "bond-country-pie": return renderBondCountryPie(body, ctx, cell, i);
+        case "filing":           return renderFiling(body, ctx, cell, i);
+        case "financials":       return renderFinancials(body, ctx, cell, i);
+        case "equity-full":      return renderEquityFull(body, ctx, i);
+        case "equity-attention": return renderEquityAttention(body, ctx, cell, i);
+        case "equity-top":       return renderEquityTop(body, ctx, cell, i);
+        case "div-signal-pie":   return renderDivSignalPie(body, ctx, cell, i);
+        default: body.innerHTML = '<div class="empty-table">No renderer for this question.</div>';
+      }
+    }
+
+    // One Orca portfolio call (answer_mode + display blocks), 60s timeout.
+    async function orcaQuery(q) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000);
+      try {
+        const res = await fetch(ENDPOINT, {
+          method: "POST", credentials: FETCH_CREDS, headers: buildHeaders(),
+          body: JSON.stringify({
+            tool: "orca_query",
+            args: { query: q, client_id: clientInput.value.trim() || SITE.client_id, answer_mode: true, ...(dashAsOf ? { as_of: dashAsOf } : {}) },
+            include_display: true
+          }),
+          signal: controller.signal
+        });
+        return await res.json();
+      } finally { clearTimeout(timeoutId); }
+    }
+
+    // ── Tab 2 (Bonds · Holdings) — slices of one get_holdings_display call ──
+    function renderHoldingsFull(body, ctx, i) {
+      const rows = ctx.holdings || [];
+      if (!rows.length) { body.innerHTML = '<div class="empty-table">No holdings returned for this fund.</div>'; return; }
+      const t = ctx.totals || {};
+      const mv = t.total_market_value_fmt ? `$${t.total_market_value_fmt}` : "";
+      const base = `${ctx.count || rows.length} holdings · ${mv} market value · ${t.weighted_yield_fmt || ""} yield · ${t.weighted_duration_fmt || ""} duration.`;
+      dashAnswers[i] = { answer: base, answer_detail: base + (ctx.cashFmt ? ` Plus $${ctx.cashFmt} cash.` : "") };
+      body.innerHTML = athenaHoldingsTable(rows, t);
+    }
+
+    const BOND_SORT = {
+      weight:   { label: "Weight",   val: r => Number(r.weight) || 0,                                   fmt: r => r.weight_fmt || "" },
+      ytw:      { label: "Yield",    val: r => Number(r.ytw != null ? r.ytw : r.yield_to_worst) || 0,   fmt: r => r.yield_fmt || r.ytw_fmt || "" },
+      spread:   { label: "Spread",   val: r => Number(r.spread != null ? r.spread : r.oas) || 0,        fmt: r => r.spread_fmt || r.oas_fmt || "" },
+      duration: { label: "Duration", val: r => Number(r.duration != null ? r.duration : r.oad) || 0,    fmt: r => r.duration_fmt || r.oad_fmt || "" }
+    };
+    // Compact bond label for mini-tables: "PEMEX 2060" (ticker + maturity year),
+    // far narrower than the full "PEMEX 6.95 2060-Jan-28" description.
+    const bondLabel = (r) => {
+      const yr = (r.maturity_date || "").slice(0, 4);
+      return [(r.ticker || ""), yr].filter(Boolean).join(" ") || r.description || "";
+    };
+    function renderBondTop(body, ctx, cell, i) {
+      const m = BOND_SORT[cell.sort] || BOND_SORT.weight;
+      const rows = (ctx.holdings || []).slice().sort((a, b) => m.val(b) - m.val(a)).slice(0, cell.n || 8);
+      if (!rows.length) { body.innerHTML = '<div class="empty-table">No holdings.</div>'; return; }
+      const lead = rows.slice(0, 3).map(r => `${r.ticker || r.description} ${m.fmt(r)}`).join(", ");
+      dashAnswers[i] = { answer: `${cell.title}: ${lead}.`, answer_detail: `${cell.title} — ${lead}.` };
+      const head = `<tr><th>Bond</th><th>Country</th><th>Rating</th><th class="num">${m.label}</th></tr>`;
+      const tr = (r) => `<tr><td>${escapeHtml(bondLabel(r))}</td><td>${escapeHtml(r.country || "")}</td><td>${escapeHtml(r.rating || "")}</td><td class="num"><strong>${escapeHtml(m.fmt(r))}</strong></td></tr>`;
+      body.innerHTML = `<div class="table-title">${escapeHtml(cell.title)}</div><div class="table-scroll"><table>${head}${rows.map(tr).join("")}</table></div>`;
+    }
+    function renderBondCountryPie(body, ctx, cell, i) {
+      const ser = allocSeries(ctx.data, "country split");  // aggregates holdings by country
+      if (!ser || !ser.data.length) { body.innerHTML = '<div class="empty-table">No country data.</div>'; return; }
+      const cats = ser.data.filter(x => !x.cash);
+      const lead = cats.slice(0, 3).map(x => `${x.label} ${x.value}%`).join(", ");
+      dashAnswers[i] = { answer: `${cats.length} countries — ${lead}.`, answer_detail: `Across ${cats.length} countries — ${lead}.` };
+      const chartId = `chart-${chartSeq++}`;
+      pendingCharts.push({ id: chartId, block: { chart_type: "pie", title: cell.title, data: ser.data } });
+      body.innerHTML = `<div class="chart-container"><canvas id="${chartId}"></canvas></div>`;
+    }
+
+    function athenaHoldingsTable(rows, totals) {
+      const sorted = rows.slice().sort((a, b) => (Number(b.market_value) || 0) - (Number(a.market_value) || 0));
+      const TOP = 10;
+      const head = `<tr>
+        <th>ISIN</th><th>Description</th><th>Ticker</th><th>Country</th><th>Rating</th>
+        <th class="num">Par</th><th class="num">Price</th><th class="num">Market value</th>
+        <th class="num">Weight</th><th class="num">Yield</th><th class="num">Duration</th><th class="num">Spread</th></tr>`;
+      const cell = (r, cls) => `<tr${cls ? ` class="${cls}" hidden` : ""}>
+        <td class="mono">${escapeHtml(r.isin || "")}</td>
+        <td>${escapeHtml(r.description || "")}</td>
+        <td>${escapeHtml(r.ticker || "")}</td>
+        <td>${escapeHtml(r.country || "")}</td>
+        <td>${escapeHtml(r.rating || "")}</td>
+        <td class="num">${escapeHtml(r.par_amount_fmt || "")}</td>
+        <td class="num">${escapeHtml(r.price_fmt || "")}</td>
+        <td class="num">${escapeHtml(r.market_value_fmt || "")}</td>
+        <td class="num">${escapeHtml(r.weight_fmt || "")}</td>
+        <td class="num">${escapeHtml(r.yield_fmt || r.ytw_fmt || "")}</td>
+        <td class="num">${escapeHtml(r.duration_fmt || r.oad_fmt || "")}</td>
+        <td class="num">${escapeHtml(r.spread_fmt || r.oas_fmt || "")}</td></tr>`;
+      const top = sorted.slice(0, TOP), extra = sorted.slice(TOP);
+      const more = extra.length
+        ? `<tr class="more-row"><td colspan="12"><button type="button" class="more-toggle" data-n="${extra.length}" onclick="toggleHoldings(this)">+ ${extra.length} more holdings</button></td></tr>`
+        : "";
+      const tot = `<tr class="tot-row">
+        <td colspan="5">TOTAL</td>
+        <td class="num">${escapeHtml(totals.total_face_value_fmt || "")}</td>
+        <td class="num">—</td>
+        <td class="num">${escapeHtml(totals.total_market_value_fmt || "")}</td>
+        <td class="num">100%</td>
+        <td class="num">${escapeHtml(totals.weighted_yield_fmt || "")}</td>
+        <td class="num">${escapeHtml(totals.weighted_duration_fmt || "")}</td>
+        <td class="num">${escapeHtml(totals.weighted_spread_fmt || "")}</td></tr>`;
+      return `<div class="table-title">Holdings (${sorted.length})</div>` +
+        `<div class="table-scroll"><table>${head}${top.map(r => cell(r, "")).join("")}${extra.map(r => cell(r, "hx")).join("")}${more}${tot}</table></div>`;
+    }
+
+    // ── Tab 3 (Equities · fundamentals) — per-company 10-K snapshots ──
+    const eqMoney = (v) => {
+      if (v == null || !isFinite(v)) return "—";
+      const a = Math.abs(v), s = v < 0 ? "-$" : "$";
+      if (a >= 1e12) return s + (a / 1e12).toFixed(1) + "T";
+      if (a >= 1e9) return s + (a / 1e9).toFixed(1) + "B";
+      if (a >= 1e6) return s + (a / 1e6).toFixed(0) + "M";
+      return s + a.toFixed(0);
+    };
+    const filingYear = (d) => (d || "").slice(0, 4);
+    const SECTION_LABEL = { business: "Business", risk: "Key risks", mda: "What changed (MD&A)" };
+    // Turn a "• point • point" TL;DR into a readable bullet list.
+    function summaryHtml(text) {
+      const parts = text.split(/\s*•\s*/).map(s => s.trim()).filter(Boolean);
+      if (parts.length > 1) return `<ul class="filing-list">${parts.map(p => `<li>${escapeHtml(p)}</li>`).join("")}</ul>`;
+      return `<p>${escapeHtml(text)}</p>`;
+    }
+    function companyFallback(tk, msg) {
+      return `<div class="empty-table">${escapeHtml(tk || "This company")} — fundamentals come from Reggie (SEC EDGAR 10-K filings). ${escapeHtml(msg || "Not available right now.")}</div>`;
+    }
+    function renderFiling(body, ctx, cell, i) {
+      const c = (ctx.companies || {})[cell.ticker];
+      if (!c || c.error || !c.summaries) { body.innerHTML = companyFallback(cell.ticker, c && c.error); return; }
+      const sec = cell.section || "business";
+      const text = (c.summaries[sec] || "").trim();
+      const secLabel = SECTION_LABEL[sec] || "Summary";
+      if (!text) { body.innerHTML = companyFallback(cell.ticker, `No ${secLabel.toLowerCase()} summary in the filing yet.`); return; }
+      const words = text.split(/\s+/).filter(Boolean).length;
+      dashAnswers[i] = {
+        answer: `${c.company} — ${secLabel.toLowerCase()}, summarised from the ${filingYear(c.filing_date)} 10-K.`,
+        answer_detail: `${c.company} (${c.ticker} · ${c.sector || "—"}) — ${secLabel.toLowerCase()} distilled from the 10-K filed ${c.filing_date || "—"} (${words} words).`
+      };
+      body.innerHTML =
+        `<div class="filing-head"><span class="filing-tk">${escapeHtml(c.ticker)}</span> ${escapeHtml(c.company)} <span class="filing-meta">· ${escapeHtml(secLabel)} · 10-K ${escapeHtml(c.filing_date || "")}</span></div>` +
+        `<div class="filing-body">${summaryHtml(text)}</div>` +
+        (c.sec_url ? `<div class="dash-src"><a href="${escapeHtml(c.sec_url)}" target="_blank" rel="noopener">Read the full filing on SEC EDGAR ↗</a></div>` : "");
+    }
+    function renderFinancials(body, ctx, cell, i) {
+      const c = (ctx.companies || {})[cell.ticker];
+      if (!c || c.error) { body.innerHTML = companyFallback(cell.ticker, c && c.error); return; }
+      const f = c.financials || {};
+      const d2e = (f.debt_to_equity == null || !isFinite(f.debt_to_equity)) ? "—" : Number(f.debt_to_equity).toFixed(2) + "x";
+      const rows = [
+        ["Revenue", eqMoney(f.revenue)],
+        ["Net margin", eqPct(f.net_margin)],
+        ["Operating margin", eqPct(f.operating_margin)],
+        ["Free cash flow", eqMoney(f.free_cash_flow)],
+        ["ROIC", eqPct(f.roic)],
+        ["Net debt / EBITDA", eqX(f.net_debt_to_ebitda)],
+        ["Debt / equity", d2e],
+        ["Dividend yield", eqPct(c.dividend_yield)],
+        ["Market cap", eqCap(c.market_cap)],
+        ["Price", eqPrice(c.price)]
+      ].filter(([, v]) => v && v !== "—");
+      if (!rows.length) { body.innerHTML = companyFallback(cell.ticker, "No financials in the filing yet."); return; }
+      dashAnswers[i] = {
+        answer: `${c.company}: ${eqMoney(f.revenue)} revenue · ${eqPct(f.net_margin)} net margin · ${eqMoney(f.free_cash_flow)} free cash flow.`,
+        answer_detail: `${c.company} (${c.ticker}) — key fundamentals from the latest 10-K filed ${c.filing_date || "—"}.`
+      };
+      const head = `<tr><th>Metric</th><th class="num">Value</th></tr>`;
+      body.innerHTML = `<div class="table-title">${escapeHtml(c.company)} · key financials</div>` +
+        `<div class="table-scroll"><table>${head}${rows.map(([k, v]) => `<tr><td>${escapeHtml(k)}</td><td class="num">${escapeHtml(v)}</td></tr>`).join("")}</table></div>`;
+    }
+
+    // ── (legacy) fund-level equity monitor — kept for reference, unused ──
+    function renderEquityFull(body, ctx, i) {
+      const rows = ctx.equities || [];
+      if (!rows.length) { body.innerHTML = equityFallback("No equity data yet."); return; }
+      const s = ctx.summary || {};
+      dashAnswers[i] = {
+        answer: `${ctx.count} US dividend stocks · ${s.attention || 0} need attention · ${s.green_dividend || 0} green dividend signals.`,
+        answer_detail: `${ctx.count} stocks monitored straight from SEC filings (EDGAR). ${s.attention || 0} flagged red on dividend, leverage or earnings; ${s.green_dividend || 0} carry a green dividend signal. As of ${ctx.asOf || "latest"}.`
+      };
+      body.innerHTML = equityTable(rows, { as_of: ctx.asOf }) + equityExamples();
+    }
+
+    const eqRed = (h) => { const s = h.signals || {}; return ["dividend", "leverage", "earnings"].some(k => s[k] && s[k].color === "red"); };
+    function renderEquityAttention(body, ctx, cell, i) {
+      const rows = (ctx.equities || []).filter(eqRed);
+      if (!rows.length) {
+        dashAnswers[i] = { answer: "Nothing flagged red.", answer_detail: "No stock carries a red dividend, leverage or earnings signal." };
+        body.innerHTML = `<div class="empty-table">Nothing flagged red — every stock's dividend, leverage and earnings signals are green or amber.</div>`; return;
+      }
+      dashAnswers[i] = { answer: `${rows.length} stocks flagged red.`, answer_detail: `${rows.length} stocks carry a red signal on dividend, leverage or earnings.` };
+      const head = `<tr><th>Ticker</th><th>Company</th><th>Sector</th><th class="ctr">Div</th><th class="ctr">Lev</th><th class="ctr">Earn</th></tr>`;
+      const tr = (h) => `<tr><td class="mono">${escapeHtml(h.ticker || "")}</td><td>${escapeHtml(h.company || "")}</td><td>${escapeHtml(h.sector || "")}</td><td class="ctr">${sigDot(h.signals && h.signals.dividend)}</td><td class="ctr">${sigDot(h.signals && h.signals.leverage)}</td><td class="ctr">${sigDot(h.signals && h.signals.earnings)}</td></tr>`;
+      body.innerHTML = `<div class="table-title">${escapeHtml(cell.title)} (${rows.length})</div><div class="table-scroll"><table>${head}${rows.map(tr).join("")}</table></div><div class="sig-legend"><span class="sig sig-red"></span> red signal</div>`;
+    }
+
+    const EQ_SORT = {
+      roic:               { label: "ROIC",      fmt: h => eqPct(h.roic) },
+      dividend_yield:     { label: "Yield",     fmt: h => eqPct(h.dividend_yield) },
+      net_debt_to_ebitda: { label: "ND/EBITDA", fmt: h => eqX(h.net_debt_to_ebitda) }
+    };
+    function renderEquityTop(body, ctx, cell, i) {
+      const m = EQ_SORT[cell.sort] || { label: "", fmt: () => "" };
+      const val = (h) => { const v = h[cell.sort]; return (v == null || !isFinite(v)) ? -Infinity : Number(v); };
+      const rows = (ctx.equities || []).slice().sort((a, b) => val(b) - val(a)).slice(0, cell.n || 8);
+      if (!rows.length) { body.innerHTML = '<div class="empty-table">No equity data.</div>'; return; }
+      const lead = rows.slice(0, 3).map(h => `${h.ticker} ${m.fmt(h)}`).join(", ");
+      dashAnswers[i] = { answer: `${cell.title}: ${lead}.`, answer_detail: `${cell.title} — ${lead}.` };
+      const head = `<tr><th>Ticker</th><th>Company</th><th class="ctr">Div</th><th class="ctr">Lev</th><th class="ctr">Earn</th><th class="num">${m.label}</th></tr>`;
+      const tr = (h) => `<tr><td class="mono">${escapeHtml(h.ticker || "")}</td><td>${escapeHtml(h.company || "")}</td><td class="ctr">${sigDot(h.signals && h.signals.dividend)}</td><td class="ctr">${sigDot(h.signals && h.signals.leverage)}</td><td class="ctr">${sigDot(h.signals && h.signals.earnings)}</td><td class="num">${escapeHtml(m.fmt(h))}</td></tr>`;
+      body.innerHTML = `<div class="table-title">${escapeHtml(cell.title)}</div><div class="table-scroll"><table>${head}${rows.map(tr).join("")}</table></div>`;
+    }
+    function renderDivSignalPie(body, ctx, cell, i) {
+      const rows = ctx.equities || [];
+      if (!rows.length) { body.innerHTML = '<div class="empty-table">No equity data.</div>'; return; }
+      const counts = { green: 0, amber: 0, red: 0, grey: 0 };
+      rows.forEach(h => { const c = (h.signals && h.signals.dividend && h.signals.dividend.color) || "grey"; counts[c] = (counts[c] || 0) + 1; });
+      const labelMap = { green: "Healthy", amber: "Watch", red: "At risk", grey: "No signal" };
+      const total = rows.length;
+      const data = Object.entries(counts).filter(([, v]) => v > 0).map(([c, v]) => ({ label: `${labelMap[c]} (${v})`, value: +(v / total * 100).toFixed(1) }));
+      dashAnswers[i] = {
+        answer: `${counts.green} healthy · ${counts.amber} watch · ${counts.red} at risk.`,
+        answer_detail: `Dividend signals: ${counts.green} healthy, ${counts.amber} watch, ${counts.red} at risk${counts.grey ? `, ${counts.grey} no signal` : ""}.`
+      };
+      const chartId = `chart-${chartSeq++}`;
+      pendingCharts.push({ id: chartId, block: { chart_type: "pie", title: cell.title, data } });
+      body.innerHTML = `<div class="chart-container"><canvas id="${chartId}"></canvas></div>`;
+    }
+
+    function sigDot(sig) {
+      const c = (sig && sig.color) || "grey";
+      const t = (sig && sig.reason) ? ` title="${escapeHtml(sig.reason)}"` : "";
+      return `<span class="sig sig-${c}"${t}></span>`;
+    }
+    const eqPct = (v) => (v == null || !isFinite(v)) ? "—" : (v * 100).toFixed(1) + "%";
+    const eqPrice = (v) => (v == null || !isFinite(v)) ? "—" : "$" + Number(v).toFixed(2);
+    const eqX = (v) => (v == null || !isFinite(v)) ? "—" : Number(v).toFixed(1) + "x";
+    const eqCap = (v) => {
+      if (v == null || !isFinite(v)) return "—";
+      if (v >= 1e12) return "$" + (v / 1e12).toFixed(1) + "T";
+      if (v >= 1e9) return "$" + (v / 1e9).toFixed(1) + "B";
+      if (v >= 1e6) return "$" + (v / 1e6).toFixed(0) + "M";
+      return "$" + Number(v).toFixed(0);
+    };
+
+    function equityTable(holdings, j) {
+      const TOP = 12;
+      const head = `<tr>
+        <th>Ticker</th><th>Company</th><th>Sector</th>
+        <th class="ctr">Div</th><th class="ctr">Lev</th><th class="ctr">Earn</th>
+        <th class="num">Price</th><th class="num">Yield</th><th class="num">ROIC</th>
+        <th class="num">Mkt cap</th><th class="num">ND/EBITDA</th></tr>`;
+      const row = (h, cls) => `<tr${cls ? ` class="${cls}" hidden` : ""}>
+        <td class="mono">${escapeHtml(h.ticker || "")}</td>
+        <td>${escapeHtml(h.company || "")}</td>
+        <td>${escapeHtml(h.sector || "")}</td>
+        <td class="ctr">${sigDot(h.signals && h.signals.dividend)}</td>
+        <td class="ctr">${sigDot(h.signals && h.signals.leverage)}</td>
+        <td class="ctr">${sigDot(h.signals && h.signals.earnings)}</td>
+        <td class="num">${eqPrice(h.price)}</td>
+        <td class="num">${eqPct(h.dividend_yield)}</td>
+        <td class="num">${eqPct(h.roic)}</td>
+        <td class="num">${eqCap(h.market_cap)}</td>
+        <td class="num">${eqX(h.net_debt_to_ebitda)}</td></tr>`;
+      const top = holdings.slice(0, TOP), extra = holdings.slice(TOP);
+      const more = extra.length
+        ? `<tr class="more-row"><td colspan="11"><button type="button" class="more-toggle" data-n="${extra.length}" onclick="toggleHoldings(this)">+ ${extra.length} more stocks</button></td></tr>`
+        : "";
+      return `<div class="table-title">Equity monitor — ${holdings.length} US dividend stocks${j.as_of ? ` (as of ${escapeHtml(j.as_of)})` : ""}</div>` +
+        `<div class="table-scroll"><table>${head}${top.map(h => row(h, "")).join("")}${extra.map(h => row(h, "hx")).join("")}${more}</table></div>` +
+        `<div class="sig-legend"><span class="sig sig-green"></span> healthy &nbsp; <span class="sig sig-amber"></span> watch &nbsp; <span class="sig sig-red"></span> needs attention</div>`;
+    }
+    function equityExamples() {
+      return `<div class="dash-src">More you can ask Reggie: ${EQUITY_EXAMPLES.map(e => `“${escapeHtml(e)}”`).join(" · ")} — <a href="${REGGIE_BASE}" target="_blank" rel="noopener">open the equity dashboard ↗</a></div>`;
+    }
+    function equityFallback(msg) {
+      return `<div class="empty-table">Equities come from Reggie — the CIO Equity Dashboard, built straight from SEC EDGAR filings. ${escapeHtml(msg)}</div>` + equityExamples();
     }
 
     document.getElementById("dashRun").addEventListener("click", runDashboard);
@@ -2126,20 +2629,151 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
       });
     })();
     // ── Guides mode — the central Iris doc-viewer, embedded by reference ──
-    // The guide is NOT stored in this app. It is the Notes/Slides/Split rendering
-    // of guinness-platform/ASK_ORCA_TOM.md, authored once and served by Iris.
-    // We iframe it (lazily, on first open) so editing the markdown + rebuilding
-    // Iris updates the guide here automatically — the app and the doc can't drift.
-    function loadGuide() {
+    // Guides are NOT stored in this app. They are the Notes/Slides/Split renders
+    // of guinness-platform markdown (ASK_ORCA_TOM.md, APP_ATHENA.md…), authored
+    // once and served by Iris. We iframe them (lazily) so editing the markdown +
+    // rebuilding Iris updates the guide here automatically — app and doc can't drift.
+    const GUIDES = [
+      { id: "ask-orca",   label: "Ask Orca" },
+      { id: "app-athena", label: "Athena" },
+      { id: "maia",       label: "MAIA transition", local: true }  // interactive, in-app
+    ];
+    let currentGuide = GUIDE_DOC_ID;  // default = ask-orca
+
+    // Bump GUIDE_VER whenever a guide doc is republished, so the iframe fetches
+    // the fresh copy instead of a cached one (e.g. a pre-deploy 404 fallback).
+    const GUIDE_VER = "20260617b";
+    function loadGuide(id) {
+      if (id) currentGuide = id;
       const f = document.getElementById("guideFrame");
-      if (!f || f.dataset.loaded) return;
-      f.src = `${IRIS_BASE}/docs/${GUIDE_DOC_ID}.html?embed=1`;
-      f.dataset.loaded = "1";
+      const panel = document.getElementById("maiaPanel");
+      if (!f) return;
+      const meta = GUIDES.find(g => g.id === currentGuide);
+      if (meta && meta.local) {
+        // Local interactive guide (MAIA transition) — show the panel, hide iframe.
+        f.style.display = "none";
+        if (panel) { panel.style.display = ""; renderMaia(); }
+      } else {
+        if (panel) panel.style.display = "none";
+        f.style.display = "";
+        if (f.dataset.guide !== currentGuide) {
+          f.src = `${IRIS_BASE}/docs/${currentGuide}.html?embed=1&v=${GUIDE_VER}`;
+          f.dataset.guide = currentGuide;
+        }
+      }
+      document.querySelectorAll("#guideTabs .dash-tab").forEach(b =>
+        b.classList.toggle("active", b.dataset.guide === currentGuide));
+    }
+
+    function buildGuideTabs() {
+      const bar = document.getElementById("guideTabs");
+      if (!bar) return;
+      bar.innerHTML = GUIDES.map((g, i) => `
+        <button type="button" class="dash-tab${g.id === currentGuide ? " active" : ""}" data-guide="${g.id}">
+          <span class="tnum">${i + 1}</span>${escapeHtml(g.label)}
+        </button>`).join("");
+      bar.querySelectorAll(".dash-tab").forEach(b =>
+        b.addEventListener("click", () => loadGuide(b.dataset.guide)));
+    }
+    buildGuideTabs();
+
+    // ── MAIA transition — editable factsheet-data readiness matrix ──────────
+    // For each fund, mark per factsheet field whether the factsheet NEEDS it,
+    // whether MAIA has the data, and whether Athena has the data. Red/green dots,
+    // click to toggle, saved in localStorage. Seeded from the RMB Income factsheet.
+    const MAIA_FUNDS = [
+      { id: "wnbf", name: "Wealthy Nations" },
+      { id: "rmb",  name: "RMB Income" },
+      { id: "gdf",  name: "Global Dynamic", note: "It is not currently intended to run the Global Dynamic Fund on Athena — sources for its factsheets are currently unknown." }
+    ];
+    const MAIA_COLS = [
+      { key: "factsheet", label: "Factsheet", hint: "Needed on the factsheet" },
+      { key: "maia",      label: "MAIA",      hint: "MAIA has the data" },
+      { key: "athena",    label: "Athena",    hint: "Athena has the data" }
+    ];
+    const MAIA_FIELDS = [
+      { group: "Holdings & allocation", items: [
+        "Top 10 holdings", "Number of holdings", "Country allocation",
+        "Credit rating allocation", "Entity breakdown (sov / quasi / cash)",
+        "5 / 10 / 40 rule" ] },
+      { group: "Characteristics", items: [
+        "Effective duration", "Average credit rating",
+        "NFA star rating", "Yield to worst (YTW)", "Average spread", "Accrued interest" ] }
+    ];
+    const MAIA_KEY = "maia_transition_v1";
+    let maiaFund = "rmb";   // start on RMB Income, as requested
+    let maiaState = (function () { try { return JSON.parse(localStorage.getItem(MAIA_KEY)) || {}; } catch (e) { return {}; } })();
+
+    // Defaults: factsheet needs every listed field (green); Athena has everything
+    // (green); MAIA is the gap to fill in (red until toggled on).
+    const maiaDefault = (col) => col !== "maia";
+    const maiaGet = (fund, field, col) => { const k = `${fund}|${field}|${col}`; return (k in maiaState) ? maiaState[k] : maiaDefault(col); };
+    function maiaSet(fund, field, col, val) { maiaState[`${fund}|${field}|${col}`] = val; try { localStorage.setItem(MAIA_KEY, JSON.stringify(maiaState)); } catch (e) {} }
+    function maiaToggle(fund, field, col) { maiaSet(fund, field, col, !maiaGet(fund, field, col)); renderMaia(); }
+    const maiaNote = (fund, field) => maiaState[`${fund}|${field}|note`] || "";
+    function maiaSetNote(fund, field, val) { maiaState[`${fund}|${field}|note`] = val; try { localStorage.setItem(MAIA_KEY, JSON.stringify(maiaState)); } catch (e) {} }
+
+    function renderMaia() {
+      const el = document.getElementById("maiaPanel");
+      if (!el) return;
+      const fund = MAIA_FUNDS.find(f => f.id === maiaFund) || MAIA_FUNDS[1];
+      let need = 0, gap = 0, athenaHas = 0;
+      MAIA_FIELDS.forEach(g => g.items.forEach(f => {
+        if (maiaGet(fund.id, f, "factsheet")) { need++; if (!maiaGet(fund.id, f, "maia")) gap++; if (maiaGet(fund.id, f, "athena")) athenaHas++; }
+      }));
+      const fundTabs = MAIA_FUNDS.map(f =>
+        `<button type="button" class="maia-fundtab${f.id === maiaFund ? " active" : ""}" data-fund="${f.id}">${escapeHtml(f.name)}</button>`).join("");
+      const headCols = MAIA_COLS.map(c => `<th class="maia-colh" title="${escapeHtml(c.hint)}">${escapeHtml(c.label)}</th>`).join("");
+      const rows = MAIA_FIELDS.map(g => {
+        const groupRow = `<tr class="maia-group"><td colspan="${2 + MAIA_COLS.length}">${escapeHtml(g.group)}</td></tr>`;
+        const items = g.items.map(f => {
+          const cells = MAIA_COLS.map(c => {
+            const on = maiaGet(fund.id, f, c.key);
+            return `<td class="maia-cell"><button type="button" class="maia-dot ${on ? "on" : "off"}" data-field="${escapeHtml(f)}" data-col="${c.key}" aria-label="${escapeHtml(c.label)}: ${on ? "yes" : "no"}">●</button></td>`;
+          }).join("");
+          const note = `<td class="maia-notec"><input type="text" class="maia-note" data-field="${escapeHtml(f)}" value="${escapeHtml(maiaNote(fund.id, f))}" placeholder="…" aria-label="Notes for ${escapeHtml(f)}"></td>`;
+          return `<tr><td class="maia-field">${escapeHtml(f)}</td>${cells}${note}</tr>`;
+        }).join("");
+        return groupRow + items;
+      }).join("");
+      el.innerHTML =
+        `<div class="maia-head">
+           <div>
+             <h2 style="margin:0 0 4px">MAIA transition — factsheet data readiness</h2>
+             <p class="note" style="margin:0">For each factsheet field, mark whether the <strong>factsheet</strong> needs it, whether <strong>MAIA</strong> has the data, and whether <strong>Athena</strong> has it. Click any dot to toggle — your edits are saved in this browser.</p>
+           </div>
+           <button type="button" id="maiaReset" class="secondary">Reset ${escapeHtml(fund.name)}</button>
+         </div>
+         <div class="maia-fundtabs">${fundTabs}</div>
+         ${fund.note ? `<div class="maia-fundnote">⚠ ${escapeHtml(fund.note)}</div>` : ""}
+         <div class="maia-summary">
+           <span><strong>${need}</strong> fields needed on the ${escapeHtml(fund.name)} factsheet</span>
+           <span class="maia-pill on">Athena supplies ${athenaHas}/${need}</span>
+           <span class="maia-pill ${gap ? "off" : "on"}">MAIA gap: ${gap}</span>
+         </div>
+         <div class="table-scroll"><table class="maia-table">
+           <thead><tr><th>Factsheet field</th>${headCols}<th class="maia-noteh">Notes</th></tr></thead>
+           <tbody>${rows}</tbody>
+         </table></div>
+         <div class="maia-legend"><span class="maia-dot on">●</span> available / needed &nbsp;&nbsp; <span class="maia-dot off">●</span> missing / not needed</div>`;
+      el.querySelectorAll(".maia-fundtab").forEach(b => b.addEventListener("click", () => { maiaFund = b.dataset.fund; renderMaia(); }));
+      el.querySelectorAll(".maia-dot[data-field]").forEach(b => b.addEventListener("click", () => maiaToggle(maiaFund, b.dataset.field, b.dataset.col)));
+      // Notes save live, without re-render (so the field keeps focus while typing).
+      el.querySelectorAll(".maia-note").forEach(inp => inp.addEventListener("input", () => maiaSetNote(maiaFund, inp.dataset.field, inp.value)));
+      const reset = el.querySelector("#maiaReset");
+      if (reset) reset.addEventListener("click", () => {
+        MAIA_FIELDS.forEach(g => g.items.forEach(f => {
+          MAIA_COLS.forEach(c => { delete maiaState[`${maiaFund}|${f}|${c.key}`]; });
+          delete maiaState[`${maiaFund}|${f}|note`];
+        }));
+        try { localStorage.setItem(MAIA_KEY, JSON.stringify(maiaState)); } catch (e) {}
+        renderMaia();
+      });
     }
 
     const SIDE_CONTEXT = {
       single: "Ask anything about the fund in plain English — get back a finished chart, table, or summary, already in your brand colours.",
-      dashboard: "Six saved questions, six finished panels. Edit any question and press Run — you never build a chart.",
+      dashboard: "Three numbered queries — two on bonds, one on equities (Reggie/EDGAR). Edit any question and press Run; each panel fills with a finished component.",
       guides: "How Ask Orca works. Read it as notes, or flip to slides.",
     };
     function setMode(mode) {
@@ -2158,6 +2792,7 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
     });
     // Match the default active mode (Dashboard) so per-mode chrome + sidebar context are correct on load.
     setMode(document.querySelector(".mode-btn.active")?.getAttribute("data-mode") || "dashboard");
+    buildDashTabs();
     buildDashQueries();
     runDashboard();
 
