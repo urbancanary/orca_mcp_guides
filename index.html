@@ -105,6 +105,11 @@
     .fu-result { max-width: 760px; }
     .fu-result .block-text { font-size: 15px; line-height: 1.62; color: var(--text, #1f2733); white-space: pre-wrap; }
     body[data-mode="fundupdate"] .sidebar { display: none; }
+    /* RVM cheap/rich screen verdicts */
+    .rvm-cheap { color: #157f3b; font-weight: 700; }
+    .rvm-rich { color: #b3261e; font-weight: 700; }
+    .rvm-sep td { background: #eef2f7; font-weight: 600; color: var(--muted, #5b6472); font-size: 11px; text-align: center; letter-spacing: .04em; }
+    td.rvm-name { font-weight: 600; }
 
     /* Dashboard's controls make the sidebar tall — let it scroll with the page */
     body[data-mode="dashboard"] .sidebar { position: static; }
@@ -998,7 +1003,7 @@
         <div class="hero-titletext">
           <div class="ao-titlestack">
             <h1>Ask Orca</h1>
-            <div class="ao-build" id="aoBuild">build 2026-06-18.3</div>
+            <div class="ao-build" id="aoBuild">build 2026-06-18.4</div>
           </div>
           <div class="badge">Live Preview</div>
         </div>
@@ -1786,6 +1791,46 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
       }).join("");
     }
 
+    // Render an RVM cheap/rich screen (get_rvm_screen: cheap_bp + verdict) or a
+    // bonds-array ranker (search_bonds_rvm: expected_return) as a table. The data
+    // object should hold a `bonds` array. Returns "" if the shape doesn't match.
+    function rvmTable(data) {
+      const bonds = data && Array.isArray(data.bonds) ? data.bonds : null;
+      if (!bonds || !bonds.length) return "";
+      const b0 = bonds[0] || {};
+      const hasVerdict = ("cheap_bp" in b0) || ("verdict" in b0);
+      const hasExp = ("expected_return" in b0);
+      if (!hasVerdict && !hasExp) return "";
+      const num = (v, d = 0) => (v == null || isNaN(v)) ? "" : Number(v).toFixed(d);
+      const bp = v => (v == null || isNaN(v)) ? "" : Math.round(v).toLocaleString();
+      let rows = bonds.slice(), show;
+      if (hasVerdict) {
+        rows.sort((a, b) => (b.cheap_bp || 0) - (a.cheap_bp || 0));   // cheapest first
+        show = rows.length > 18 ? rows.slice(0, 8).concat([{ __sep: "richest ↓" }]).concat(rows.slice(-8)) : rows.slice(0, 20);
+      } else {
+        show = rows.slice(0, 15);
+      }
+      const head = hasVerdict
+        ? ["Bond", "Country", "Rating", "Price", "YTW", "OAS bp", "Cheap/rich bp", "Verdict"]
+        : ["Bond", "Country", "Rating", "Price", "Yield", "Spread bp", "Exp. ret %"];
+      const body = show.map(r => {
+        if (r.__sep) return `<tr class="rvm-sep"><td colspan="${head.length}">${escapeHtml(r.__sep)}</td></tr>`;
+        const vcls = r.verdict === "cheap" ? "rvm-cheap" : (r.verdict === "rich" ? "rvm-rich" : "");
+        const base = [escapeHtml(r.description || r.isin || ""), escapeHtml(r.country || ""), escapeHtml(r.rating || "-"), r.price != null ? num(r.price, 1) : ""];
+        let cells;
+        if (hasVerdict) {
+          const cbStr = r.cheap_bp == null ? "" : (r.cheap_bp > 0 ? "+" : "") + bp(r.cheap_bp);
+          cells = base.concat([num(r.ytw, 2), bp(r.oas), `<span class="${vcls}">${cbStr}</span>`, `<span class="${vcls}">${escapeHtml(r.verdict || "")}</span>`]);
+        } else {
+          cells = base.concat([num(r.yield, 2), bp(r.spread), num(r.expected_return, 1)]);
+        }
+        return `<tr>${cells.map((c, i) => `<td${i === 0 ? ' class="rvm-name"' : ''}>${c}</td>`).join("")}</tr>`;
+      }).join("");
+      const title = hasVerdict ? "Relative value — cheap vs rich (RVM screen)" : "Bond ranker (relative value)";
+      return `<div class="table-title">${title}</div>
+        <div class="table-scroll"><table><thead><tr>${head.map(h => `<th>${escapeHtml(h)}</th>`).join("")}</tr></thead><tbody>${body}</tbody></table></div>`;
+    }
+
     // A generated file (e.g. a PPTX deck Orca built) arrives as { filename, format,
     // size_bytes, base64_content }. Find it whether it's at the top level, under
     // .data, or double-wrapped under .data.data.
@@ -1870,6 +1915,19 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
         tablesDiv.style.display = "block";
         if (iframe) iframe.style.display = "none";
         tablesDiv.innerHTML = `<div class="block-text">${escapeHtml(fuProse)}</div>`;
+        return;
+      }
+
+      // 0c. RVM cheap/rich screen or bond ranker (a `bonds` array) — render as a table.
+      const rvmHtml = (function () {
+        let r = (response && response.ok !== undefined && response.data !== undefined) ? response.data : response;
+        let inner = (r && r.data && typeof r.data === "object" && !Array.isArray(r.data)) ? r.data : r;
+        return rvmTable(inner);
+      })();
+      if (rvmHtml) {
+        tablesDiv.style.display = "block";
+        if (iframe) iframe.style.display = "none";
+        tablesDiv.innerHTML = rvmHtml;
         return;
       }
 
