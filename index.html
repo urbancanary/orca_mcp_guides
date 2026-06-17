@@ -1826,6 +1826,20 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
         </div>`;
     }
 
+    // Dig the prose update out of whatever envelope Orca/the gateway returns.
+    // Seen shapes: {ok,data:{data:{update}}}, {data:{update}}, {update},
+    // or a display text block. Returns the prose string or null.
+    function extractProse(resp) {
+      let r = (resp && resp.ok !== undefined && resp.data !== undefined) ? resp.data : resp;
+      const cands = [r, r && r.data, r && r.data && r.data.data, resp && resp.data, resp && resp.data && resp.data.data];
+      for (const c of cands) { if (c && typeof c.update === "string" && c.update.trim()) return c.update; }
+      for (const obj of [resp, r]) {
+        const b = obj && obj.display && obj.display.blocks;
+        if (Array.isArray(b)) { const t = b.find(x => x && x.type === "text" && x.content); if (t) return t.content; }
+      }
+      return (resp && resp.answer) || (r && r.answer) || null;
+    }
+
     function renderTables(response) {
       const tablesDiv = document.getElementById("tables");
       const iframe = document.getElementById("widget-iframe");
@@ -1836,6 +1850,21 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
         tablesDiv.style.display = "block";
         if (iframe) iframe.style.display = "none";
         tablesDiv.innerHTML = renderFileCard(genFile, response);
+        return;
+      }
+
+      // 0b. Fund-update prose (get_fund_update returns an `update` field) — render as a paragraph.
+      const fuProse = (function () {
+        let r = (response && response.ok !== undefined && response.data !== undefined) ? response.data : response;
+        for (const c of [r, r && r.data, r && r.data && r.data.data]) {
+          if (c && typeof c.update === "string" && c.update.trim()) return c.update;
+        }
+        return null;
+      })();
+      if (fuProse) {
+        tablesDiv.style.display = "block";
+        if (iframe) iframe.style.display = "none";
+        tablesDiv.innerHTML = `<div class="block-text">${escapeHtml(fuProse)}</div>`;
         return;
       }
 
@@ -2978,10 +3007,10 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
         const data = JSON.parse(await res.text());
         rows[rows.length-1].innerHTML = rows[rows.length-1].innerHTML.replace('class="spin">▸','class="tick">✓');
         log.classList.remove("on");
-        const gen = findGeneratedFile(data);
-        if (gen) { out.innerHTML = renderFileCard(gen, data); }
-        else if (data.display && Array.isArray(data.display.blocks)) { out.innerHTML = renderDisplayBlocks(data.display); processPendingCharts(); }
-        else if (data.answer || (data.data && data.data.update)) { out.innerHTML = `<div class="block-text">${escapeHtml((data.data && data.data.update) || data.answer)}</div>`; }
+        const gen = findGeneratedFile(data) || findGeneratedFile(data && data.data);
+        const prose = extractProse(data);
+        if (prose) { out.innerHTML = `<div class="block-text">${escapeHtml(prose)}</div>`; }
+        else if (gen) { out.innerHTML = renderFileCard(gen, data); }
         else { out.innerHTML = `<div class="empty-table">No update was returned. Try again, or see the Single query tab.</div>`; }
       } catch (e) {
         log.classList.remove("on");
