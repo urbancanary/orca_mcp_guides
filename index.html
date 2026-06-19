@@ -2928,15 +2928,37 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
         "Effective duration", "Average credit rating",
         "NFA star rating", "Yield to worst (YTW)", "Average spread", "Accrued interest" ] }
     ];
-    const MAIA_KEY = "maia_transition_v1";
+    // Matrix state lives in the CLOUD (guides-gate), shared by everyone — not in this
+    // browser. Anyone can toggle; the change is what everyone sees. maiaState is just an
+    // in-memory mirror, loaded on open and updated on each toggle.
+    const MAIA_API = "https://guides.guinnessgi.x-trillion.com/api/matrix";
     let maiaFund = "rmb";   // start on RMB Income, as requested
-    let maiaState = (function () { try { return JSON.parse(localStorage.getItem(MAIA_KEY)) || {}; } catch (e) { return {}; } })();
+    let maiaState = {};     // mirror of the shared cloud state (string values: "1"/"0"/note text)
+
+    async function loadMatrix() {
+      try {
+        const r = await fetch(MAIA_API);
+        if (r.ok) { const d = await r.json(); maiaState = d.state || {}; }
+      } catch (e) { /* offline → fall back to defaults, read-only */ }
+      if (typeof renderMaia === "function") renderMaia();
+    }
+    // Persist one key to the shared store (fire-and-forget; local mirror already updated).
+    function maiaPush(k, v) {
+      fetch(MAIA_API, { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(v === null ? { k, v: null } : { k, v }) }).catch(() => {});
+    }
 
     // Defaults: factsheet needs every listed field (green); Athena has everything
-    // (green); MAIA is the gap to fill in (red until toggled on).
-    const maiaDefault = (col) => col !== "maia";
-    const maiaGet = (fund, field, col) => { const k = `${fund}|${field}|${col}`; return (k in maiaState) ? maiaState[k] : maiaDefault(col); };
-    function maiaSet(fund, field, col, val) { maiaState[`${fund}|${field}|${col}`] = val; try { localStorage.setItem(MAIA_KEY, JSON.stringify(maiaState)); } catch (e) {} }
+    // (green); MAIA is the gap to fill in (red until toggled on). EXCEPTION: the
+    // Global Dynamic fund does not run on Athena (sources unknown) → Athena defaults
+    // to off (0/12), matching the warning shown on its card.
+    const maiaDefault = (fund, col) => {
+      if (fund === "gdf" && col === "athena") return false;
+      return col !== "maia";
+    };
+    const _truthy = (x) => x === true || x === "1" || x === 1;
+    const maiaGet = (fund, field, col) => { const k = `${fund}|${field}|${col}`; return (k in maiaState) ? _truthy(maiaState[k]) : maiaDefault(fund, col); };
+    function maiaSet(fund, field, col, val) { const k = `${fund}|${field}|${col}`, v = val ? "1" : "0"; maiaState[k] = v; maiaPush(k, v); }
     function maiaToggle(fund, field, col) { maiaSet(fund, field, col, !maiaGet(fund, field, col)); renderMaia(); }
     const maiaNote = (fund, field) => maiaState[`${fund}|${field}|note`] || "";
     function maiaSetNote(fund, field, val) { maiaState[`${fund}|${field}|note`] = val; try { localStorage.setItem(MAIA_KEY, JSON.stringify(maiaState)); } catch (e) {} }
