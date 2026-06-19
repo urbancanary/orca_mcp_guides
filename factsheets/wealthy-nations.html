@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guinness Wealthy Nations Bond Fund — Factsheet</title>
+<style>
+  :root{
+    --navy:#21315c;          /* Guinness Wealthy Nations brand navy */
+    --red:#c8102e;
+    --band:#e8ecf2;          /* light band + zebra rows */
+    --grey-line:#d0dae8;
+    --text:#21315c;
+    --muted:#5b6675;
+    --ph-bg:#fff6d6; --ph-text:#8a6d00; --ph-border:#e6c84b;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:#52606d;font-family:"Segoe UI",Arial,Helvetica,sans-serif;color:#1c2530;font-size:12px;line-height:1.35;}
+  .page{width:210mm;min-height:297mm;margin:18px auto;background:#fff;position:relative;box-shadow:0 4px 18px rgba(0,0,0,.35);padding-bottom:18mm;}
+  /* ---------- header band ---------- */
+  .head{background:var(--band);padding:14mm 14mm 9mm;display:flex;justify-content:space-between;align-items:flex-start;}
+  .head h1{font-size:25px;color:var(--navy);margin:0;font-weight:700;letter-spacing:.2px;}
+  .head .sub{color:var(--navy);font-size:11.5px;margin-top:4px;font-weight:600;}
+  .head .disclaimer{color:var(--muted);font-size:8.5px;margin-top:7px;max-width:440px;line-height:1.32;}
+  .logo img{height:42px;display:block;}
+  .content{padding:8mm 14mm 0;}
+  /* ---------- columns ---------- */
+  .body{display:flex;gap:16px;}
+  .col-left{width:30%;} .col-right{width:70%;}
+  .section-title{color:var(--red);font-size:17px;font-weight:700;margin:2px 0 8px;}
+  .facts .row{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--grey-line);gap:10px;}
+  .facts .row dt{font-weight:700;flex:0 0 46%;color:var(--text);} .facts .row dd{margin:0;text-align:right;flex:1;}
+  .risks p,.profile p{font-size:10.5px;margin:0 0 8px;line-height:1.4;}
+  .profile h4{margin:10px 0 2px;font-size:11px;color:var(--navy);font-weight:700;}
+  .source{font-size:9px;color:var(--muted);line-height:1.35;}
+  /* ---------- tables ---------- */
+  table{width:100%;border-collapse:collapse;margin-bottom:14px;}
+  .tbl-head{background:var(--navy);color:#fff;font-weight:700;text-align:left;padding:6px 8px;font-size:11.5px;}
+  th,td{padding:4px 8px;font-size:10.5px;border-bottom:none;}
+  th{color:var(--muted);font-weight:700;text-align:right;}
+  th.l,td.l{text-align:left;} td.r,th.r{text-align:right;}
+  table tr:nth-child(even) td{background:var(--band);}
+  .tbl-total td{font-weight:700;border-top:2px solid var(--navy);background:#fff!important;}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;align-items:start;}
+  .grid3 table{margin-bottom:10px;}
+  .grid3 td{padding:5px 8px;}
+  .grid3 .t-main,.grid3 .t-cash{margin-bottom:0;}
+  .grid3 .t-sec{margin-top:10px;}
+  .grid3 .col-c .mainwrap,.grid3 .col-r .mainwrap{height:var(--listH,410px);}
+  /* ---------- pre-launch notice ---------- */
+  .prelaunch{border:1px dashed var(--navy);background:#f3f6fb;color:var(--navy);border-radius:4px;padding:18px;text-align:center;font-size:11px;line-height:1.5;}
+  .prelaunch b{display:block;font-size:13px;margin-bottom:4px;}
+  /* ---------- placeholder marker (unknown pre-launch facts) ---------- */
+  .ph{background:var(--ph-bg);color:var(--ph-text);border:1px dashed var(--ph-border);border-radius:3px;padding:0 4px;font-family:"SFMono-Regular",Consolas,monospace;font-size:9.5px;white-space:nowrap;}
+  /* ---------- legal ---------- */
+  .legal p{font-size:9.5px;line-height:1.45;margin:0 0 9px;} .legal b{color:var(--navy);} .legal .note{font-weight:700;color:#1c2530;}
+  /* ---------- footer ---------- */
+  .foot{position:absolute;bottom:8mm;left:14mm;right:14mm;border-top:1px solid var(--grey-line);padding-top:6px;font-size:9px;color:var(--muted);line-height:1.4;}
+  .foot b{color:#1c2530;}
+  /* ---------- build animation (only when loaded with ?animate=1) ---------- */
+  @keyframes fsRise{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:none;}}
+  body.animate .page:first-of-type .head,
+  body.animate .page:first-of-type .col-left,
+  body.animate .page:first-of-type .grid3 .fcol,
+  body.animate .page:first-of-type .col-right > table,
+  body.animate .page:first-of-type .col-right > .tbl-head,
+  body.animate .page:first-of-type .col-right > .prelaunch,
+  body.animate .page:nth-of-type(2),
+  body.animate .page:nth-of-type(3){opacity:0;animation:fsRise .55s ease forwards;}
+  body.animate .page:first-of-type .head{animation-delay:.05s;}
+  body.animate .page:first-of-type .col-left{animation-delay:.25s;}
+  body.animate .page:first-of-type .grid3 .fcol:nth-child(1){animation-delay:.5s;}
+  body.animate .page:first-of-type .grid3 .fcol:nth-child(2){animation-delay:.68s;}
+  body.animate .page:first-of-type .grid3 .fcol:nth-child(3){animation-delay:.86s;}
+  body.animate .page:first-of-type .col-right > table{animation-delay:1.05s;}
+  body.animate .page:first-of-type .col-right > .tbl-head,
+  body.animate .page:first-of-type .col-right > .prelaunch{animation-delay:1.22s;}
+  body.animate .page:nth-of-type(2){animation-delay:1.4s;}
+  body.animate .page:nth-of-type(3){animation-delay:1.5s;}
+  @media print{body{background:#fff;}.page{margin:0;box-shadow:none;width:auto;min-height:auto;}.page,.page *{opacity:1!important;animation:none!important;}}
+</style>
+</head>
+<body>
+
+<!-- ============================ PAGE 1 ============================ -->
+<div class="page">
+  <div class="head">
+    <div>
+      <h1>Guinness Wealthy Nations Bond Fund</h1>
+      <div class="sub">USD &ndash; indicative portfolio at 16.06.2026 (pre-launch)</div>
+      <div class="disclaimer">This is a marketing communication. The Fund has not yet launched; the portfolio shown is an indicative model and is subject to change. Please refer to the Prospectus, Supplement and KID/KIID for the Fund, which will contain detailed information on the Fund's characteristics and objectives, before making any final investment decisions.</div>
+    </div>
+    <div class="logo"><img src="factsheet_assets/guinness-logo.png" alt="Guinness Global Investors"></div>
+  </div>
+
+  <div class="content">
+  <div class="body">
+    <div class="col-left">
+      <div class="section-title">Fund Facts</div>
+      <div class="facts">
+        <div class="row"><dt>Fund launch</dt><dd>31.08.2026</dd></div>
+        <div class="row"><dt>Manager(s)</dt><dd>Guinness Global Investors</dd></div>
+        <div class="row"><dt>Fund size</dt><dd>$10.49m (model)</dd></div>
+        <div class="row"><dt>Yield (gross, est.)</dt><dd>5.50%</dd></div>
+        <div class="row"><dt>Region</dt><dd>Global</dd></div>
+        <div class="row"><dt>Morningstar Category</dt><dd>Global Bond &ndash; USD</dd></div>
+        <div class="row"><dt>IA sector</dt><dd>Specialist Bond</dd></div>
+        <div class="row"><dt>Base Currency</dt><dd>USD</dd></div>
+        <div class="row"><dt>Structure</dt><dd>OEIC (UCITS)</dd></div>
+        <div class="row"><dt>Domicile</dt><dd>Ireland</dd></div>
+        <div class="row"><dt>ISA eligible</dt><dd>Yes</dd></div>
+        <div class="row"><dt>Reporting status</dt><dd>Yes</dd></div>
+        <div class="row"><dt>Pricing</dt><dd>Daily, forwards</dd></div>
+        <div class="row"><dt>Valuation</dt><dd>2300 Dublin time</dd></div>
+        <div class="row"><dt>Year end</dt><dd>31 December</dd></div>
+        <div class="row"><dt>Custodian</dt><dd>Brown Brothers Harriman</dd></div>
+      </div>
+
+      <div class="section-title" style="margin-top:14px;">Risks</div>
+      <div class="risks">
+        <p>The Guinness Wealthy Nations Bond Fund is a bond fund. Investors should be willing and able to assume the risks of bond and fixed income investing. The value of an investment and the income from it can fall as well as rise as a result of market and currency movement, and you may not get back the amount originally invested. The Fund invests in sovereign and quasi-sovereign hard-currency (USD/EUR) bonds; any non-USD exposure is hedged to USD. For full information on the risks, please refer to the Prospectus, Supplement and KID/KIID for the Fund, which will be available on our website.</p>
+        <p class="source">Source: Athena live portfolio snapshot, price date 16.06.2026. Portfolio weights are shown as a percentage of total fund value (including cash). Figures are indicative and pre-launch. The current estimated Ongoing Charges Figure (OCF) is 0.60%. Yield shown is the gross running yield of the indicative portfolio and is not a historic distribution yield. Investors may be subject to tax on any future distribution.</p>
+      </div>
+    </div>
+
+    <div class="col-right">
+      <div class="grid3">
+        <!-- COLUMN 1: Top 10 holdings + Portfolio Characteristics (anchor) -->
+        <div class="fcol col-h">
+          <div class="mainwrap"><table class="t-main">
+            <tr><td class="tbl-head l" colspan="2">Top 10 holdings <span style="float:right">%</span></td></tr>
+            <tr><td class="l">Qatar Energy 3.125% 12/07/2041</td><td class="r">7.3</td></tr>
+            <tr><td class="l">KazMunayGas 6.375% 24/10/2048</td><td class="r">6.4</td></tr>
+            <tr><td class="l">CFE 6.264% 15/02/2052</td><td class="r">5.7</td></tr>
+            <tr><td class="l">Ecopetrol 5.875% 28/05/2045</td><td class="r">4.8</td></tr>
+            <tr><td class="l">Pemex 6.95% 28/01/2060</td><td class="r">4.2</td></tr>
+            <tr><td class="l">Saudi Arabia 4.5% 22/04/2060</td><td class="r">4.2</td></tr>
+            <tr><td class="l">Israel 3.8% 13/05/2060</td><td class="r">3.9</td></tr>
+            <tr><td class="l">Codelco 4.375% 05/02/2049</td><td class="r">3.8</td></tr>
+            <tr><td class="l">ADCOP 4.6% 02/11/2047</td><td class="r">3.5</td></tr>
+            <tr><td class="l">Ecopetrol 5.875% 02/11/2051</td><td class="r">3.5</td></tr>
+          </table></div>
+          <table class="t-cash">
+            <tr class="tbl-total"><td class="l">Top 10 holdings</td><td class="r">47.2</td></tr>
+            <tr><td class="l">Number of holdings</td><td class="r">25</td></tr>
+          </table>
+          <table class="t-sec">
+            <tr><td class="tbl-head l" colspan="2">Portfolio Characteristics</td></tr>
+            <tr><td class="l">Effective Duration</td><td class="r">9.47</td></tr>
+            <tr><td class="l">Average Credit Rating</td><td class="r">A3 / Baa1</td></tr>
+          </table>
+        </div>
+
+        <!-- COLUMN 2: Country + Entity Breakdown -->
+        <div class="fcol col-c">
+          <div class="mainwrap"><table class="t-main">
+            <tr><td class="tbl-head l" colspan="2">Country <span style="float:right">%</span></td></tr>
+            <tr><td class="l">Mexico</td><td class="r">19.6</td></tr>
+            <tr><td class="l">Saudi Arabia</td><td class="r">18.1</td></tr>
+            <tr><td class="l">Abu Dhabi</td><td class="r">9.7</td></tr>
+            <tr><td class="l">Kazakhstan</td><td class="r">8.9</td></tr>
+            <tr><td class="l">Colombia</td><td class="r">8.1</td></tr>
+            <tr><td class="l">Chile</td><td class="r">7.3</td></tr>
+            <tr><td class="l">Qatar</td><td class="r">7.2</td></tr>
+            <tr><td class="l">Israel</td><td class="r">3.9</td></tr>
+            <tr><td class="l">South Korea</td><td class="r">2.9</td></tr>
+            <tr><td class="l">United Arab Emirates</td><td class="r">2.6</td></tr>
+          </table></div>
+          <table class="t-cash">
+            <tr class="tbl-total"><td class="l">Cash</td><td class="r">11.6</td></tr>
+            <tr><td class="l"></td><td class="r">100.0</td></tr>
+          </table>
+          <table class="t-sec">
+            <tr><td class="tbl-head l" colspan="2">Entity Breakdown</td></tr>
+            <tr><td class="l">Sovereign</td><td class="r">21.3%</td></tr>
+            <tr><td class="l">Quasi-Sovereign</td><td class="r">67.1%</td></tr>
+            <tr><td class="l">Cash</td><td class="r">11.6%</td></tr>
+          </table>
+        </div>
+
+        <!-- COLUMN 3: Credit Rating -->
+        <div class="fcol col-r">
+          <div class="mainwrap"><table class="t-main">
+            <tr><td class="tbl-head l" colspan="2">Credit Rating <span style="float:right">%</span></td></tr>
+            <tr><td class="l">BBB</td><td class="r">30.6</td></tr>
+            <tr><td class="l">AA</td><td class="r">22.4</td></tr>
+            <tr><td class="l">A+</td><td class="r">10.8</td></tr>
+            <tr><td class="l">AA-</td><td class="r">7.3</td></tr>
+            <tr><td class="l">BBB+</td><td class="r">6.4</td></tr>
+            <tr><td class="l">A</td><td class="r">3.9</td></tr>
+            <tr><td class="l">A-</td><td class="r">3.6</td></tr>
+            <tr><td class="l">BB+</td><td class="r">3.4</td></tr>
+          </table></div>
+          <table class="t-cash">
+            <tr class="tbl-total"><td class="l">Cash</td><td class="r">11.6</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <table>
+        <tr><td class="tbl-head l" colspan="7">Performance (to Month End) &mdash; Past performance does not predict future returns</td></tr>
+        <tr><th class="l"></th><th class="r">1 Month</th><th class="r">YTD</th><th class="r">1 yr</th><th class="r">3 yr</th><th class="r">5 yr</th><th class="r">10 yr</th></tr>
+        <tr><td class="l">Fund (USD)</td><td class="r">-</td><td class="r">-</td><td class="r">-</td><td class="r">-</td><td class="r">-</td><td class="r">-</td></tr>
+        <tr><td class="l">Fund (GBP hedged)</td><td class="r">-</td><td class="r">-</td><td class="r">-</td><td class="r">-</td><td class="r">-</td><td class="r">-</td></tr>
+        <tr><td class="l">Fund (EUR hedged)</td><td class="r">-</td><td class="r">-</td><td class="r">-</td><td class="r">-</td><td class="r">-</td><td class="r">-</td></tr>
+      </table>
+
+      <div class="tbl-head">Performance Since Launch (USD)</div>
+      <div class="prelaunch" style="margin-top:0;border-top:none;border-radius:0 0 4px 4px;">
+        <b>The Fund has not yet launched</b>
+        Performance history and the since-launch chart will appear here once the Fund is live and a track record begins.
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <div class="foot">
+    Guinness Global Investors is a trading name of Guinness Asset Management Ltd which is authorised and regulated by the Financial Conduct Authority<br>
+    For more information please visit <b>www.guinnessgi.com</b> &nbsp; +44 (0) 20 7222 5703 &nbsp; info@guinnessgi.com
+  </div>
+</div>
+
+<!-- ============================ PAGE 2 ============================ -->
+<div class="page">
+  <div class="head">
+    <div><h1>Guinness Wealthy Nations Bond Fund</h1><div class="sub">Continued</div></div>
+    <div class="logo"><img src="factsheet_assets/guinness-logo.png" alt="Guinness Global Investors"></div>
+  </div>
+
+  <div class="content">
+  <div class="body">
+    <div class="col-left">
+      <div class="section-title">Fund Profile</div>
+      <div class="profile">
+        <h4>Aim</h4><p>Income and capital growth from a globally diversified portfolio of hard-currency sovereign and quasi-sovereign bonds.</p>
+        <h4>Investment Case</h4>
+        <p>We buy the bonds of wealthy creditor nations that the market still misprices because of a decades-old "emerging market" label. Strong sovereigns &mdash; with taxing power, infinite life and real national wealth &mdash; should trade tighter than corporates, not wider. That mispricing is the opportunity.</p>
+        <h4>Process</h4>
+        <p>The Fund invests only in countries with government debt below 100% of GDP and net foreign assets better than &minus;50% of GDP. All holdings are hard-currency (USD/EUR); any euro exposure is hedged back to US dollars, leaving effectively zero FX risk at the fund level.</p>
+        <h4>Portfolio</h4>
+        <p>A high-conviction, investment-grade sovereign and quasi-sovereign strategy, diversified across creditor nations in Latin America, the Gulf, Asia and beyond.</p>
+        <h4>Investment Objective</h4>
+        <p>The fund is actively managed without reference to a benchmark or comparative index for performance comparison purposes.</p>
+        <p>For the avoidance of doubt, if you decide to invest, you will be buying units/shares in the Fund and will not be investing directly in the underlying assets of the Fund.</p>
+      </div>
+    </div>
+
+    <div class="col-right">
+      <table>
+        <tr><td class="tbl-head l" colspan="7">Share classes</td></tr>
+        <tr><th class="l">Class</th><th class="l">Currency</th><th class="l">Acc/Dist</th><th class="r">OCF</th><th class="r">Maximum Initial Charge</th><th class="l">ISIN</th><th class="l">Bloomberg</th></tr>
+        <tr><td class="l">Y USD Dist</td><td class="l">USD</td><td class="l">Dist</td><td class="r">0.60%</td><td class="r">0%</td><td class="l">IE000FIQDRV0</td><td class="l">GUINYUD ID</td></tr>
+        <tr><td class="l">Y GBP Dist</td><td class="l">GBP</td><td class="l">Dist</td><td class="r">0.60%</td><td class="r">0%</td><td class="l">IE000G93HZF4</td><td class="l">GUINYGD ID</td></tr>
+        <tr><td class="l">Y EUR Dist</td><td class="l">EUR</td><td class="l">Dist</td><td class="r">0.60%</td><td class="r">0%</td><td class="l">IE000K4N4BW3</td><td class="l">GUUNEDY ID</td></tr>
+      </table>
+      <p class="source" style="margin-top:-8px;">Share class details are indicative and modelled on the Guinness China RMB Income fund pending confirmation; final ISINs, OCFs and Bloomberg tickers will be issued on launch. USD is the base currency; GBP and EUR share classes are hedged to USD.</p>
+
+      <table style="margin-top:14px;">
+        <tr><td class="tbl-head l" colspan="11">Calendar Year Performance &mdash; Past performance does not predict future returns</td></tr>
+        <tr><th class="l"></th><th class="r">2025</th><th class="r">2024</th><th class="r">2023</th><th class="r">2022</th><th class="r">2021</th><th class="r">2020</th><th class="r">2019</th><th class="r">2018</th><th class="r">2017</th><th class="r">2016</th></tr>
+        <tr><td class="l">Fund (USD)</td><td class="r">-</td><td class="r">-</td><td class="r">-</td><td class="r">-</td><td class="r">-</td><td class="r">-</td><td class="r">-</td><td class="r">-</td><td class="r">-</td><td class="r">-</td></tr>
+        <tr><td class="l">Fund (GBP hedged)</td><td class="r">-</td><td class="r">-</td><td class="r">-</td><td class="r">-</td><td class="r">-</td><td class="r">-</td><td class="r">-</td><td class="r">-</td><td class="r">-</td><td class="r">-</td></tr>
+        <tr><td class="l">Fund (EUR hedged)</td><td class="r">-</td><td class="r">-</td><td class="r">-</td><td class="r">-</td><td class="r">-</td><td class="r">-</td><td class="r">-</td><td class="r">-</td><td class="r">-</td><td class="r">-</td></tr>
+      </table>
+      <p class="source" style="margin-top:-8px;">No calendar-year performance is available: the Fund has not yet launched and has no track record.</p>
+    </div>
+  </div>
+  </div>
+
+  <div class="foot">
+    Guinness Global Investors is a trading name of Guinness Asset Management Ltd which is authorised and regulated by the Financial Conduct Authority<br>
+    For more information please visit <b>www.guinnessgi.com</b> &nbsp; +44 (0) 20 7222 5703 &nbsp; info@guinnessgi.com
+  </div>
+</div>
+
+<!-- ============================ PAGE 3 — LEGAL ============================ -->
+<div class="page">
+  <div class="head">
+    <div><h1>Guinness Wealthy Nations Bond Fund</h1><div class="sub">Continued</div></div>
+    <div class="logo"><img src="factsheet_assets/guinness-logo.png" alt="Guinness Global Investors"></div>
+  </div>
+
+  <div class="content">
+    <div class="legal" style="margin-top:40px;">
+      <p><b>Issued by Guinness Global Investors</b> which is a trading name of Guinness Asset Management Limited which is authorised and regulated by the Financial Conduct Authority. This document is provided for information only. The Fund has not yet launched. All the information contained in it is believed to be reliable but may be inaccurate or incomplete; it should not be relied upon. It is not an invitation to make an investment nor does it constitute an offer for sale. Telephone calls will be recorded.</p>
+
+      <p><b>Documentation</b> The documentation needed to make an investment, including the Prospectus, Supplement, Key Information Document (KID), Key Investor Information Document (KIID) and the Application Form, will be available in English from the website www.guinnessgi.com on launch, or free of charge from the Promoter and Investment Manager: Guinness Asset Management Ltd, 18 Smith Square, London SW1P 3HZ.</p>
+
+      <p><b>Investor Rights</b> A summary of investor rights in English, including collective redress mechanisms, will be made available on launch.</p>
+
+      <p><b>Residency</b> In countries where the Fund is not registered for sale or in any other circumstances where its distribution is not authorised or is unlawful, the Fund should not be distributed to resident Retail Clients.</p>
+
+      <p class="note">NOTE: THIS INVESTMENT IS NOT FOR SALE TO U.S. PERSONS.</p>
+
+      <p><b>Structure &amp; regulation</b> The Fund is intended to be a sub-fund of an open-ended umbrella-type investment company authorised and supervised under EU UCITS legislation. If you are in any doubt about the suitability of investing in this Fund, please consult your investment or other professional adviser.</p>
+
+      <p><b>Source &amp; status</b> Portfolio data shown is an indicative, pre-launch model sourced from the Athena live portfolio snapshot (price date 16.06.2026) and is subject to change. The Fund has no track record and no performance history is available.</p>
+    </div>
+  </div>
+
+  <div class="foot">
+    Guinness Global Investors is a trading name of Guinness Asset Management Ltd which is authorised and regulated by the Financial Conduct Authority<br>
+    For more information please visit <b>www.guinnessgi.com</b> &nbsp; +44 (0) 20 7222 5703 &nbsp; info@guinnessgi.com
+  </div>
+</div>
+
+<script>
+  // Build-in animation when embedded in the Ask Orca demo (?animate=1)
+  if (/[?&]animate=1/.test(location.search)) document.body.classList.add('animate');
+</script>
+</body>
+</html>

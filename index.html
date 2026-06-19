@@ -70,6 +70,46 @@
     }
     .content { flex: 1; min-width: 0; }
     body[data-mode="guides"] .sidebar { display: none; }
+    /* Factsheets mode: full-width, no sidebar — the factsheet renders in an isolated iframe */
+    body[data-mode="factsheets"] .sidebar { display: none; }
+    .fs-h { margin: 0 0 6px; font-size: 20px; color: var(--text, #1f2733); }
+    .fs-intro { font-size: 14px; color: var(--muted, #5b6472); margin: 0 0 14px; max-width: 820px; line-height: 1.5; }
+    .fs-questions { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+    .fs-q { padding: 10px 16px; border: 1px solid var(--line, #d5d9e0); border-radius: 10px; background: #fff;
+            font-size: 14px; font-weight: 600; color: var(--text, #1f2733); cursor: pointer; text-align: left; }
+    .fs-q:hover { border-color: var(--brand, #1f3a5f); color: var(--brand, #1f3a5f); }
+    .fs-q.active { background: var(--brand, #1f3a5f); color: #fff; border-color: var(--brand, #1f3a5f); }
+    .fs-q:disabled { opacity: .55; cursor: default; }
+    .fs-stage { position: relative; }
+    /* Generation step log — shown while Orca "builds" the factsheet, hidden once it's revealed */
+    .fs-build { display: none; padding: 22px 20px; border: 1px solid var(--line, #d5d9e0); border-radius: 10px;
+                background: #0f1722; color: #cfe3f5; font: 13px/1.7 "SFMono-Regular", ui-monospace, Consolas, monospace; }
+    .fs-build.on { display: block; }
+    .fs-step { opacity: 0; transform: translateY(4px); transition: opacity .25s ease, transform .25s ease; }
+    .fs-step.show { opacity: 1; transform: none; }
+    .fs-step .tick { color: #4ade80; }
+    .fs-step .spin { color: #5fb3f0; }
+    .fs-frame-wrap { border: 1px solid var(--line, #d5d9e0); border-radius: 10px; overflow: hidden; background: #52606d; }
+    .fs-frame { width: 100%; height: 1180px; border: 0; display: block; background: #52606d;
+                opacity: 0; transition: opacity .45s ease; }
+    .fs-frame.shown { opacity: 1; }
+    .fs-frame.empty { display: none; }
+    /* Generated-file download card (PPTX/PDF returned by Orca) */
+    .gen-file { display: flex; gap: 14px; align-items: flex-start; border: 1px solid var(--line, #d5d9e0);
+                border-radius: 10px; padding: 18px; background: #fff; max-width: 560px; }
+    .gen-file-icon { font-size: 30px; line-height: 1; }
+    .gen-file-name { font-weight: 700; font-size: 15px; color: var(--text, #1f2733); }
+    .gen-file-meta { font-size: 12px; color: var(--muted, #5b6472); margin-top: 2px; }
+    .gen-file-note { font-size: 13px; color: var(--text, #1f2733); margin-top: 8px; line-height: 1.45; }
+    /* Fund update prose */
+    .fu-result { max-width: 760px; }
+    .fu-result .block-text { font-size: 15px; line-height: 1.62; color: var(--text, #1f2733); white-space: pre-wrap; }
+    body[data-mode="fundupdate"] .sidebar { display: none; }
+    /* RVM cheap/rich screen verdicts */
+    .rvm-cheap { color: #157f3b; font-weight: 700; }
+    .rvm-rich { color: #b3261e; font-weight: 700; }
+    .rvm-sep td { background: #eef2f7; font-weight: 600; color: var(--muted, #5b6472); font-size: 11px; text-align: center; letter-spacing: .04em; }
+    td.rvm-name { font-weight: 600; }
 
     /* Dashboard's controls make the sidebar tall — let it scroll with the page */
     body[data-mode="dashboard"] .sidebar { position: static; }
@@ -169,6 +209,8 @@
     .topbar .hero-title { display: flex; align-items: center; gap: 11px; margin: 0; }
     .topbar .hero-av { width: 40px; height: 40px; }
     .topbar .hero-titletext { display: flex; flex-direction: row; align-items: center; gap: 11px; min-width: 0; }
+    .ao-titlestack { display: flex; flex-direction: column; line-height: 1; }
+    .ao-build { font-size: 10px; color: var(--muted, #5b6472); font-weight: 600; letter-spacing: .02em; margin-top: 3px; }
     .topbar .hero-title h1 { font-size: 22px; line-height: 1; }
     .topbar .badge { display: inline-block; }
 
@@ -701,6 +743,23 @@
     .maia-note:focus { outline: none; border-color: var(--brand); }
     .maia-fundnote { background: #fff7e6; border: 1px solid #f5d99a; color: #8a5a00; border-radius: 8px; padding: 9px 13px; font-size: 13px; margin-bottom: 14px; }
 
+    /* All-funds factsheet-readiness summary — Athena dark/gold palette (placeholder look) */
+    .maia-summary-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 6px 0 18px; }
+    .maia-sumcard { text-align: left; cursor: pointer; border: 1px solid #1f3350; border-radius: 12px; padding: 14px 16px; background: linear-gradient(180deg, #101a2c, #0c1422); color: #e8eef5; }
+    .maia-sumcard:hover { border-color: #33507a; }
+    .maia-sumcard.active { border-color: #e6a93c; box-shadow: 0 0 0 1px rgba(230,169,60,.35); }
+    .msc-fund { font-size: 14px; font-weight: 700; color: #fff; }
+    .msc-flag { color: #e6a93c; cursor: help; }
+    .msc-label { font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em; color: #7e8ca6; margin: 2px 0 12px; }
+    .msc-row { display: flex; align-items: center; gap: 8px; margin: 6px 0; font-size: 12px; }
+    .msc-k { width: 48px; color: #9fb0c9; }
+    .msc-bar { flex: 1; height: 7px; background: #1a2840; border-radius: 99px; overflow: hidden; }
+    .msc-fill { display: block; height: 100%; border-radius: 99px; }
+    .msc-fill.athena { background: #2bb6a3; }   /* Athena teal */
+    .msc-fill.maia { background: #e6a93c; }      /* Athena gold */
+    .msc-v { width: 42px; text-align: right; color: #e8eef5; font-variant-numeric: tabular-nums; }
+    @media (max-width: 760px) { .maia-summary-cards { grid-template-columns: 1fr; } }
+
     /* Narrow screens: sidebar stacks on top, content below */
     @media (max-width: 760px) {
       main.shell { flex-direction: column; gap: 16px; }
@@ -942,13 +1001,18 @@
       <div class="hero-title">
         <img class="hero-av" src="https://guinness.x-trillion.com/assets/orca.png" alt="Orca AI assistant" loading="lazy">
         <div class="hero-titletext">
-          <h1>Ask Orca</h1>
+          <div class="ao-titlestack">
+            <h1>Ask Orca</h1>
+            <div class="ao-build" id="aoBuild">build 2026-06-18.4</div>
+          </div>
           <div class="badge">Live Preview</div>
         </div>
       </div>
       <nav class="mode-toggle">
         <button class="mode-btn" data-mode="single">Single query</button>
         <button class="mode-btn active" data-mode="dashboard">Dashboard</button>
+        <button class="mode-btn" data-mode="factsheets">Factsheets</button>
+        <button class="mode-btn" data-mode="fundupdate">Fund update</button>
         <button class="mode-btn" data-mode="guides">Guides</button>
       </nav>
     </header>
@@ -1217,6 +1281,34 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
       </div>
     </div><!-- /#mode-dashboard -->
 
+    <div id="mode-factsheets" style="display:none">
+      <h2 class="fs-h">Full fund factsheets, generated on demand</h2>
+      <p class="fs-intro">This isn't a stored PDF. Ask Orca for a fund and it <strong>builds the whole factsheet live</strong> — pulling the latest holdings from Athena, computing the country, rating and entity breakdowns, and laying it out in the Guinness brand. Same question tomorrow, same template, fresh numbers. Pick a question and watch it assemble:</p>
+      <div class="fs-questions">
+        <button class="fs-q" data-fund="china-rmb" onclick="showFactsheet('china-rmb')">Show me the Guinness China RMB Income factsheet</button>
+        <button class="fs-q" data-fund="wealthy-nations" onclick="showFactsheet('wealthy-nations')">Show me the Wealthy Nations Bond Fund factsheet</button>
+      </div>
+      <div class="fs-stage">
+        <div id="fsBuild" class="fs-build" aria-live="polite"></div>
+        <div class="fs-frame-wrap">
+          <iframe id="factsheetFrame" class="fs-frame empty" title="Fund factsheet" loading="lazy"></iframe>
+        </div>
+      </div>
+    </div><!-- /#mode-factsheets -->
+
+    <div id="mode-fundupdate" style="display:none">
+      <h2 class="fs-h">Fund update, written on demand</h2>
+      <p class="fs-intro">Not a stored note and not a slide deck. Ask Orca pulls the latest portfolio and <strong>writes a short client update in the fund's house voice</strong>, every time. Pick a fund:</p>
+      <div class="fs-questions">
+        <button class="fs-q" data-fund="wnbf" onclick="askFundUpdate('wnbf')">Write a fund update for the Wealthy Nations Bond Fund</button>
+        <button class="fs-q" data-fund="rmb" onclick="askFundUpdate('rmb')">Write a fund update for the China RMB Income fund</button>
+      </div>
+      <div class="fs-stage">
+        <div id="fuBuild" class="fs-build" aria-live="polite"></div>
+        <div id="fuResult" class="fu-result"></div>
+      </div>
+    </div><!-- /#mode-fundupdate -->
+
     <div id="mode-guides" style="display:none">
       <div id="guideTabs" class="guide-tabs"></div>
       <iframe id="guideFrame" class="guide-frame" title="Guide" loading="lazy"></iframe>
@@ -1233,7 +1325,7 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
     // Orca authenticates the user. Standalone/dev falls back to the direct
     // service (no auth). The internal URL is never the box's public path.
     const EMBEDDED = new URLSearchParams(location.search).get('orion') === 'true';
-    const ON_BOX = EMBEDDED || /(^|\.)guinness\.x-trillion\.com$/.test(location.hostname);
+    const ON_BOX = EMBEDDED || /(^|\.)guinness(gi)?\.x-trillion\.com$/.test(location.hostname);  // matches guinness OR guinnessgi
     const ORCA_BASE = ON_BOX ? 'https://orca.x-trillion.com' : 'https://orca-mcp.x-trillion.com';
     // Guides are NOT stored in this app — they're the central doc-viewer (Iris)
     // rendering of the single-source markdown (guinness-platform/ASK_ORCA_TOM.md),
@@ -1699,9 +1791,145 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
       }).join("");
     }
 
+    // Render an RVM cheap/rich screen (get_rvm_screen: cheap_bp + verdict) or a
+    // bonds-array ranker (search_bonds_rvm: expected_return) as a table. The data
+    // object should hold a `bonds` array. Returns "" if the shape doesn't match.
+    function rvmTable(data) {
+      const bonds = data && Array.isArray(data.bonds) ? data.bonds : null;
+      if (!bonds || !bonds.length) return "";
+      const b0 = bonds[0] || {};
+      const hasVerdict = ("cheap_bp" in b0) || ("verdict" in b0);
+      const hasExp = ("expected_return" in b0);
+      if (!hasVerdict && !hasExp) return "";
+      const num = (v, d = 0) => (v == null || isNaN(v)) ? "" : Number(v).toFixed(d);
+      const bp = v => (v == null || isNaN(v)) ? "" : Math.round(v).toLocaleString();
+      let rows = bonds.slice(), show;
+      if (hasVerdict) {
+        rows.sort((a, b) => (b.cheap_bp || 0) - (a.cheap_bp || 0));   // cheapest first
+        show = rows.length > 18 ? rows.slice(0, 8).concat([{ __sep: "richest ↓" }]).concat(rows.slice(-8)) : rows.slice(0, 20);
+      } else {
+        show = rows.slice(0, 15);
+      }
+      const head = hasVerdict
+        ? ["Bond", "Country", "Rating", "Price", "YTW", "OAS bp", "Cheap/rich bp", "Verdict"]
+        : ["Bond", "Country", "Rating", "Price", "Yield", "Spread bp", "Exp. ret %"];
+      const body = show.map(r => {
+        if (r.__sep) return `<tr class="rvm-sep"><td colspan="${head.length}">${escapeHtml(r.__sep)}</td></tr>`;
+        const vcls = r.verdict === "cheap" ? "rvm-cheap" : (r.verdict === "rich" ? "rvm-rich" : "");
+        const base = [escapeHtml(r.description || r.isin || ""), escapeHtml(r.country || ""), escapeHtml(r.rating || "-"), r.price != null ? num(r.price, 1) : ""];
+        let cells;
+        if (hasVerdict) {
+          const cbStr = r.cheap_bp == null ? "" : (r.cheap_bp > 0 ? "+" : "") + bp(r.cheap_bp);
+          cells = base.concat([num(r.ytw, 2), bp(r.oas), `<span class="${vcls}">${cbStr}</span>`, `<span class="${vcls}">${escapeHtml(r.verdict || "")}</span>`]);
+        } else {
+          cells = base.concat([num(r.yield, 2), bp(r.spread), num(r.expected_return, 1)]);
+        }
+        return `<tr>${cells.map((c, i) => `<td${i === 0 ? ' class="rvm-name"' : ''}>${c}</td>`).join("")}</tr>`;
+      }).join("");
+      const title = hasVerdict ? "Relative value — cheap vs rich (RVM screen)" : "Bond ranker (relative value)";
+      return `<div class="table-title">${title}</div>
+        <div class="table-scroll"><table><thead><tr>${head.map(h => `<th>${escapeHtml(h)}</th>`).join("")}</tr></thead><tbody>${body}</tbody></table></div>`;
+    }
+
+    // A generated file (e.g. a PPTX deck Orca built) arrives as { filename, format,
+    // size_bytes, base64_content }. Find it whether it's at the top level, under
+    // .data, or double-wrapped under .data.data.
+    function findGeneratedFile(response) {
+      const cands = [response, response && response.data, response && response.data && response.data.data];
+      for (const c of cands) {
+        if (c && typeof c.base64_content === "string" && c.base64_content.length) return c;
+      }
+      return null;
+    }
+    const FILE_MIME = {
+      pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+      docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      pdf: "application/pdf",
+    };
+    let _lastGenFile = null;
+    function downloadGenFile() {
+      if (!_lastGenFile) return;
+      const bin = atob(_lastGenFile.base64_content);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      const blob = new Blob([bytes], { type: FILE_MIME[_lastGenFile.format] || "application/octet-stream" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = _lastGenFile.filename || ("download." + (_lastGenFile.format || "bin"));
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+    }
+    function renderFileCard(f, response) {
+      _lastGenFile = f;
+      const kb = f.size_bytes ? Math.round(f.size_bytes / 1024).toLocaleString() + " KB" : "";
+      const note = (response && (response.answer_detail || response.answer)) || "";
+      return `
+        <div class="gen-file">
+          <div class="gen-file-icon">📄</div>
+          <div class="gen-file-body">
+            <div class="gen-file-name">${escapeHtml(f.filename || "Generated file")}</div>
+            <div class="gen-file-meta">${escapeHtml((f.format || "").toUpperCase())}${kb ? " · " + kb : ""}</div>
+            ${note ? `<div class="gen-file-note">${escapeHtml(note)}</div>` : ""}
+            <button class="fs-q" style="margin-top:10px" onclick="downloadGenFile()">⬇ Download</button>
+          </div>
+        </div>`;
+    }
+
+    // Dig the prose update out of whatever envelope Orca/the gateway returns.
+    // Seen shapes: {ok,data:{data:{update}}}, {data:{update}}, {update},
+    // or a display text block. Returns the prose string or null.
+    function extractProse(resp) {
+      let r = (resp && resp.ok !== undefined && resp.data !== undefined) ? resp.data : resp;
+      const cands = [r, r && r.data, r && r.data && r.data.data, resp && resp.data, resp && resp.data && resp.data.data];
+      for (const c of cands) { if (c && typeof c.update === "string" && c.update.trim()) return c.update; }
+      for (const obj of [resp, r]) {
+        const b = obj && obj.display && obj.display.blocks;
+        if (Array.isArray(b)) { const t = b.find(x => x && x.type === "text" && x.content); if (t) return t.content; }
+      }
+      return (resp && resp.answer) || (r && r.answer) || null;
+    }
+
     function renderTables(response) {
       const tablesDiv = document.getElementById("tables");
       const iframe = document.getElementById("widget-iframe");
+
+      // 0. A generated document (PPTX/PDF/…) — offer a download instead of dumping base64.
+      const genFile = findGeneratedFile(response);
+      if (genFile) {
+        tablesDiv.style.display = "block";
+        if (iframe) iframe.style.display = "none";
+        tablesDiv.innerHTML = renderFileCard(genFile, response);
+        return;
+      }
+
+      // 0b. Fund-update prose (get_fund_update returns an `update` field) — render as a paragraph.
+      const fuProse = (function () {
+        let r = (response && response.ok !== undefined && response.data !== undefined) ? response.data : response;
+        for (const c of [r, r && r.data, r && r.data && r.data.data]) {
+          if (c && typeof c.update === "string" && c.update.trim()) return c.update;
+        }
+        return null;
+      })();
+      if (fuProse) {
+        tablesDiv.style.display = "block";
+        if (iframe) iframe.style.display = "none";
+        tablesDiv.innerHTML = `<div class="block-text">${escapeHtml(fuProse)}</div>`;
+        return;
+      }
+
+      // 0c. RVM cheap/rich screen or bond ranker (a `bonds` array) — render as a table.
+      const rvmHtml = (function () {
+        let r = (response && response.ok !== undefined && response.data !== undefined) ? response.data : response;
+        let inner = (r && r.data && typeof r.data === "object" && !Array.isArray(r.data)) ? r.data : r;
+        return rvmTable(inner);
+      })();
+      if (rvmHtml) {
+        tablesDiv.style.display = "block";
+        if (iframe) iframe.style.display = "none";
+        tablesDiv.innerHTML = rvmHtml;
+        return;
+      }
 
       // 1. Prioritize standardized display blocks (semantic intent)
       if (response && response.display) {
@@ -2636,7 +2864,7 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
     const GUIDES = [
       { id: "ask-orca",   label: "Ask Orca" },
       { id: "app-athena", label: "Athena" },
-      { id: "maia",       label: "MAIA transition", local: true }  // interactive, in-app
+      { id: "maia",       label: "Analytics available matrix", local: true }  // interactive, in-app
     ];
     let currentGuide = GUIDE_DOC_ID;  // default = ask-orca
 
@@ -2700,18 +2928,63 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
         "Effective duration", "Average credit rating",
         "NFA star rating", "Yield to worst (YTW)", "Average spread", "Accrued interest" ] }
     ];
-    const MAIA_KEY = "maia_transition_v1";
+    // Matrix state lives in the CLOUD (guides-gate), shared by everyone — not in this
+    // browser. Anyone can toggle; the change is what everyone sees. maiaState is just an
+    // in-memory mirror, loaded on open and updated on each toggle.
+    const MAIA_API = "https://guides.guinnessgi.x-trillion.com/api/matrix";
     let maiaFund = "rmb";   // start on RMB Income, as requested
-    let maiaState = (function () { try { return JSON.parse(localStorage.getItem(MAIA_KEY)) || {}; } catch (e) { return {}; } })();
+    let maiaState = {};     // mirror of the shared cloud state (string values: "1"/"0"/note text)
+
+    async function loadMatrix() {
+      try {
+        const r = await fetch(MAIA_API);
+        if (r.ok) { const d = await r.json(); maiaState = d.state || {}; }
+      } catch (e) { /* offline → fall back to defaults, read-only */ }
+      if (typeof renderMaia === "function") renderMaia();
+    }
+    // Persist one key to the shared store (fire-and-forget; local mirror already updated).
+    function maiaPush(k, v) {
+      fetch(MAIA_API, { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(v === null ? { k, v: null } : { k, v }) }).catch(() => {});
+    }
 
     // Defaults: factsheet needs every listed field (green); Athena has everything
-    // (green); MAIA is the gap to fill in (red until toggled on).
-    const maiaDefault = (col) => col !== "maia";
-    const maiaGet = (fund, field, col) => { const k = `${fund}|${field}|${col}`; return (k in maiaState) ? maiaState[k] : maiaDefault(col); };
-    function maiaSet(fund, field, col, val) { maiaState[`${fund}|${field}|${col}`] = val; try { localStorage.setItem(MAIA_KEY, JSON.stringify(maiaState)); } catch (e) {} }
+    // (green); MAIA is the gap to fill in (red until toggled on). EXCEPTION: the
+    // Global Dynamic fund does not run on Athena (sources unknown) → Athena defaults
+    // to off (0/12), matching the warning shown on its card.
+    const maiaDefault = (fund, col) => {
+      if (fund === "gdf" && col === "athena") return false;
+      return col !== "maia";
+    };
+    const _truthy = (x) => x === true || x === "1" || x === 1;
+    const maiaGet = (fund, field, col) => { const k = `${fund}|${field}|${col}`; return (k in maiaState) ? _truthy(maiaState[k]) : maiaDefault(fund, col); };
+    function maiaSet(fund, field, col, val) { const k = `${fund}|${field}|${col}`, v = val ? "1" : "0"; maiaState[k] = v; maiaPush(k, v); }
     function maiaToggle(fund, field, col) { maiaSet(fund, field, col, !maiaGet(fund, field, col)); renderMaia(); }
     const maiaNote = (fund, field) => maiaState[`${fund}|${field}|note`] || "";
     function maiaSetNote(fund, field, val) { maiaState[`${fund}|${field}|note`] = val; try { localStorage.setItem(MAIA_KEY, JSON.stringify(maiaState)); } catch (e) {} }
+
+    // Per-fund readiness: how many factsheet-needed fields MAIA / Athena supply.
+    function maiaFundStats(fundId) {
+      let need = 0, maia = 0, athena = 0;
+      MAIA_FIELDS.forEach(g => g.items.forEach(f => {
+        if (maiaGet(fundId, f, "factsheet")) { need++; if (maiaGet(fundId, f, "maia")) maia++; if (maiaGet(fundId, f, "athena")) athena++; }
+      }));
+      return { need, maia, athena };
+    }
+    // Summary across all three funds — Athena dark/gold palette (placeholder look).
+    function maiaSummaryHtml() {
+      const pct = (a, b) => b ? Math.round(a / b * 100) : 0;
+      const cards = MAIA_FUNDS.map(f => {
+        const s = maiaFundStats(f.id);
+        return `<button type="button" class="maia-sumcard${f.id === maiaFund ? " active" : ""}" data-fund="${f.id}">
+          <div class="msc-fund">${escapeHtml(f.name)}${f.note ? ' <span class="msc-flag" title="' + escapeHtml(f.note) + '">⚠</span>' : ""}</div>
+          <div class="msc-label">Factsheet readiness</div>
+          <div class="msc-row"><span class="msc-k">Athena</span><span class="msc-bar"><span class="msc-fill athena" style="width:${pct(s.athena, s.need)}%"></span></span><span class="msc-v">${s.athena}/${s.need}</span></div>
+          <div class="msc-row"><span class="msc-k">MAIA</span><span class="msc-bar"><span class="msc-fill maia" style="width:${pct(s.maia, s.need)}%"></span></span><span class="msc-v">${s.maia}/${s.need}</span></div>
+        </button>`;
+      }).join("");
+      return `<div class="maia-summary-cards">${cards}</div>`;
+    }
 
     function renderMaia() {
       const el = document.getElementById("maiaPanel");
@@ -2739,11 +3012,12 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
       el.innerHTML =
         `<div class="maia-head">
            <div>
-             <h2 style="margin:0 0 4px">MAIA transition — factsheet data readiness</h2>
+             <h2 style="margin:0 0 4px">Analytics available matrix — factsheet data readiness</h2>
              <p class="note" style="margin:0">For each factsheet field, mark whether the <strong>factsheet</strong> needs it, whether <strong>MAIA</strong> has the data, and whether <strong>Athena</strong> has it. Click any dot to toggle — your edits are saved in this browser.</p>
            </div>
            <button type="button" id="maiaReset" class="secondary">Reset ${escapeHtml(fund.name)}</button>
          </div>
+         ${maiaSummaryHtml()}
          <div class="maia-fundtabs">${fundTabs}</div>
          ${fund.note ? `<div class="maia-fundnote">⚠ ${escapeHtml(fund.note)}</div>` : ""}
          <div class="maia-summary">
@@ -2756,7 +3030,7 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
            <tbody>${rows}</tbody>
          </table></div>
          <div class="maia-legend"><span class="maia-dot on">●</span> available / needed &nbsp;&nbsp; <span class="maia-dot off">●</span> missing / not needed</div>`;
-      el.querySelectorAll(".maia-fundtab").forEach(b => b.addEventListener("click", () => { maiaFund = b.dataset.fund; renderMaia(); }));
+      el.querySelectorAll(".maia-fundtab, .maia-sumcard").forEach(b => b.addEventListener("click", () => { maiaFund = b.dataset.fund; renderMaia(); }));
       el.querySelectorAll(".maia-dot[data-field]").forEach(b => b.addEventListener("click", () => maiaToggle(maiaFund, b.dataset.field, b.dataset.col)));
       // Notes save live, without re-render (so the field keeps focus while typing).
       el.querySelectorAll(".maia-note").forEach(inp => inp.addEventListener("input", () => maiaSetNote(maiaFund, inp.dataset.field, inp.value)));
@@ -2774,18 +3048,137 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
     const SIDE_CONTEXT = {
       single: "Ask anything about the fund in plain English — get back a finished chart, table, or summary, already in your brand colours.",
       dashboard: "Three numbered queries — two on bonds, one on equities (Reggie/EDGAR). Edit any question and press Run; each panel fills with a finished component.",
+      factsheets: "Ask for a fund by name and Orca returns its full marketing factsheet, branded and ready to share.",
+      fundupdate: "Ask for a fund and Orca writes a short client update in its house voice, from the latest portfolio.",
       guides: "How Ask Orca works. Read it as notes, or flip to slides.",
     };
+
+    // Fund update: send a prose-intent query to Orca and render the returned text block.
+    const FUND_UPDATE = {
+      wnbf: { label: "Wealthy Nations Bond Fund",
+              query: "Write a short client fund update for the Wealthy Nations Bond Fund",
+              steps: ["Routing your question to Orca…", "Pulling the latest Wealthy Nations portfolio from Athena…",
+                      "Reading duration, yield, ratings and country mix…", "Writing the update in the fund's voice…"] },
+      rmb:  { label: "China RMB Income",
+              query: "Write a short client fund update for the Guinness China RMB Income fund",
+              steps: ["Routing your question to Orca…", "Pulling the latest China RMB Income portfolio from Athena…",
+                      "Reading duration, yield, ratings and country mix…", "Writing the update in the fund's voice…"] },
+    };
+    let fuBusy = false;
+    async function askFundUpdate(fund) {
+      const cfg = FUND_UPDATE[fund];
+      const log = document.getElementById("fuBuild");
+      const out = document.getElementById("fuResult");
+      if (!cfg || !log || !out || fuBusy) return;
+      fuBusy = true;
+      document.querySelectorAll('#mode-fundupdate .fs-q').forEach(b => {
+        b.classList.toggle("active", b.getAttribute("data-fund") === fund); b.disabled = true;
+      });
+      out.innerHTML = "";
+      log.innerHTML = ""; log.classList.add("on");
+      const rows = cfg.steps.map(t => {
+        const d = document.createElement("div"); d.className = "fs-step";
+        d.innerHTML = `<span class="spin">▸</span> ${t}`; log.appendChild(d); return d;
+      });
+      const STEP_MS = 420;
+      cfg.steps.forEach((_, i) => setTimeout(() => {
+        rows[i].classList.add("show");
+        if (i > 0) rows[i-1].innerHTML = rows[i-1].innerHTML.replace('class="spin">▸','class="tick">✓');
+      }, i * STEP_MS));
+
+      const payload = { tool: "orca_query", args: { query: cfg.query, client_id: (window.SITE && SITE.client_id) || "guinness" }, include_display: true };
+      try {
+        const res = await fetch(ENDPOINT, { method: "POST", credentials: FETCH_CREDS, headers: buildHeaders(), body: JSON.stringify(payload) });
+        const data = JSON.parse(await res.text());
+        rows[rows.length-1].innerHTML = rows[rows.length-1].innerHTML.replace('class="spin">▸','class="tick">✓');
+        log.classList.remove("on");
+        const gen = findGeneratedFile(data) || findGeneratedFile(data && data.data);
+        const prose = extractProse(data);
+        if (prose) { out.innerHTML = `<div class="block-text">${escapeHtml(prose)}</div>`; }
+        else if (gen) { out.innerHTML = renderFileCard(gen, data); }
+        else { out.innerHTML = `<div class="empty-table">No update was returned. Try again, or see the Single query tab.</div>`; }
+      } catch (e) {
+        log.classList.remove("on");
+        out.innerHTML = `<div class="empty-table">Couldn't fetch the update (${escapeHtml(e.message)}).</div>`;
+      } finally {
+        document.querySelectorAll('#mode-fundupdate .fs-q').forEach(b => { b.disabled = false; });
+        fuBusy = false;
+      }
+    }
+
+    // Map each factsheet question to its standalone HTML doc, rendered in an isolated iframe.
+    // The factsheet is loaded with ?animate=1 so its own sections build in after the step log.
+    const FACTSHEETS = {
+      "china-rmb": { src: "factsheets/china-rmb-income.html", fund: "Guinness China RMB Income",
+        steps: ["Routing your question to Orca…", "Fetching the latest China RMB holdings from Athena…",
+                "Computing country, rating & entity breakdowns…", "Applying the Guinness brand template…",
+                "Assembling the factsheet…"] },
+      "wealthy-nations": { src: "factsheets/wealthy-nations.html", fund: "Wealthy Nations Bond Fund",
+        steps: ["Routing your question to Orca…", "Fetching the Wealthy Nations live portfolio from Athena…",
+                "Computing country, rating & entity breakdowns…", "Applying the Guinness brand template…",
+                "Assembling the factsheet…"] },
+    };
+    let fsBuilding = false;
+    function showFactsheet(fund) {
+      const cfg = FACTSHEETS[fund];
+      const frame = document.getElementById("factsheetFrame");
+      const log = document.getElementById("fsBuild");
+      if (!cfg || !frame || !log || fsBuilding) return;
+      fsBuilding = true;
+
+      document.querySelectorAll(".fs-q").forEach(b => {
+        b.classList.toggle("active", b.getAttribute("data-fund") === fund);
+        b.disabled = true;
+      });
+
+      // 1) hide any prior render, show the generation step log
+      frame.classList.remove("shown"); frame.classList.add("empty");
+      log.innerHTML = ""; log.classList.add("on");
+
+      // 2) stream the steps, ticking each as the next appears
+      const steps = cfg.steps;
+      const rows = steps.map((t, i) => {
+        const div = document.createElement("div");
+        div.className = "fs-step";
+        div.innerHTML = `<span class="spin">▸</span> ${t}`;
+        log.appendChild(div);
+        return div;
+      });
+      const STEP_MS = 360;
+      steps.forEach((_, i) => {
+        setTimeout(() => {
+          rows[i].classList.add("show");
+          if (i > 0) rows[i - 1].innerHTML = rows[i - 1].innerHTML.replace('class="spin">▸', 'class="tick">✓');
+        }, i * STEP_MS);
+      });
+
+      // 3) after the last step, load + reveal the factsheet (which then builds its own sections in)
+      setTimeout(() => {
+        rows[rows.length - 1].innerHTML = rows[rows.length - 1].innerHTML.replace('class="spin">▸', 'class="tick">✓');
+        frame.classList.remove("empty");
+        frame.onload = () => {
+          log.classList.remove("on");
+          requestAnimationFrame(() => frame.classList.add("shown"));
+          document.querySelectorAll(".fs-q").forEach(b => { b.disabled = false; });
+          fsBuilding = false;
+        };
+        frame.src = cfg.src + "?animate=1";
+      }, steps.length * STEP_MS + 220);
+    }
     function setMode(mode) {
       document.body.dataset.mode = mode;   // drives per-mode chrome (see CSS)
       const ctx = document.getElementById("sideContext");
       if (ctx) ctx.textContent = SIDE_CONTEXT[mode] || "";
       document.querySelectorAll(".mode-btn").forEach(b => b.classList.toggle("active", b.getAttribute("data-mode") === mode));
-      ["single", "dashboard", "guides"].forEach(m => {
+      ["single", "dashboard", "factsheets", "fundupdate", "guides"].forEach(m => {
         const el = document.getElementById("mode-" + m);
         if (el) el.style.display = m === mode ? "" : "none";
       });
       if (mode === "guides") loadGuide();
+      if (mode === "factsheets") {
+        const frame = document.getElementById("factsheetFrame");
+        if (frame && !frame.src) showFactsheet("china-rmb");  // default to the first fund
+      }
     }
     document.querySelectorAll(".mode-btn").forEach((btn) => {
       btn.addEventListener("click", () => setMode(btn.getAttribute("data-mode")));
