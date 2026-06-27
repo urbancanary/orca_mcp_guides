@@ -1114,6 +1114,7 @@
           <div class="tab" data-tab="tab-json">Raw JSON</div>
           <div class="tab" data-tab="tab-query">Product API</div>
           <div class="tab" data-tab="tab-docs">How it Works</div>
+          <div class="tab" data-tab="tab-code">Get the code</div>
         </div>
 
         <div id="tab-tables" class="tab-content active">
@@ -1226,6 +1227,48 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
             <h3>Even less work, later</h3>
             <p>The three steps above are the do-it-yourself version. The next step is that you don't write <code>drawChart</code> at all — you drop in <strong>our</strong> renderer component and feed it <code>display</code>. Same blocks, same theme, but the drawing code lives with us and every client gets it for free. Until then, the loop above is all you need.</p>
           </div>
+        </div>
+
+        <div id="tab-code" class="tab-content">
+          <div class="doc-section">
+            <h3>Get the code 🧑‍💻</h3>
+            <p>Type what you want in the <strong>Question</strong> box (top-left), in plain English — this shows the exact request to send Orca to get it back as a <strong>finished, ready-to-draw answer</strong>. Change the question and the code updates live. Swap in your own <code>X-Client-ID</code> and <code>X-API-Key</code> and it runs from anywhere.</p>
+          </div>
+          <label>API</label>
+          <div class="code-mode-row">
+            <button class="secondary code-mode active" data-mode="call">Display blocks · <code>/call</code></button>
+            <button class="secondary code-mode" data-mode="query">Typed API · <code>/query</code></button>
+          </div>
+          <label>Try one</label>
+          <div class="preset-row code-presets-call">
+            <button class="secondary code-preset">Pie chart of wnbf holdings by country</button>
+            <button class="secondary code-preset">Bar chart of wnbf holdings by rating</button>
+            <button class="secondary code-preset">wnbf yield and duration over time</button>
+          </div>
+          <div class="preset-row code-presets-query" style="display:none">
+            <button class="secondary code-preset">Give me analytics for ISIN US168863CE60</button>
+            <button class="secondary code-preset">What is the yield on ISIN US168863CF36?</button>
+          </div>
+          <div class="code-lang-row">
+            <button class="secondary code-lang active" data-lang="curl">cURL</button>
+            <button class="secondary code-lang" data-lang="js">JavaScript</button>
+            <button class="secondary code-lang" data-lang="py">Python</button>
+          </div>
+          <pre id="codeOut" class="code-block code-out"></pre>
+          <div class="actions">
+            <button id="copyCode" class="secondary">Copy code</button>
+            <button id="runCode">Run this query →</button>
+          </div>
+          <pre id="codeRunOut" class="code-block code-out" style="display:none"></pre>
+          <p class="note" id="codeNote"></p>
+          <style>
+            #tab-code .code-mode-row, #tab-code .code-lang-row { display:flex; gap:8px; margin:8px 0; }
+            #tab-code .code-mode.active, #tab-code .code-lang.active { background:var(--brand,#1f3a5f) !important; color:#fff !important; border-color:var(--brand,#1f3a5f) !important; }
+            #tab-code .code-mode code, #tab-code .code-mode.active code { background:transparent; padding:0; }
+            #tab-code .code-out { white-space:pre; overflow:auto; }
+            #tab-code #runCode { margin-left:6px; }
+            #tab-code #codeRunOut { margin-top:10px; max-height:320px; }
+          </style>
         </div>
       </div>
     </section>
@@ -2050,6 +2093,7 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
       button.addEventListener("click", () => {
         queryInput.value = button.textContent;
         updateRequestShape();
+        if (typeof renderCode === "function") renderCode();
       });
     });
 
@@ -2057,6 +2101,135 @@ applyTheme(display.theme);   // sets chart palette + colours from your brand
     clientInput.addEventListener("input", updateRequestShape);
     sendButton.addEventListener("click", sendQuery);
     copyButton.addEventListener("click", copyCurl);
+
+    // ── "Get the code": plain-English question → the exact request to send ──
+    // Two product surfaces: /call (display blocks) and /query (typed envelope).
+    // Snippets always show the PUBLIC gateway; the API key stays a placeholder.
+    const codeOutEl = document.getElementById("codeOut");
+    const codeRunOut = document.getElementById("codeRunOut");
+    const codeNote = document.getElementById("codeNote");
+    const PUBLIC_CALL  = "https://orca.x-trillion.com/call";
+    const PUBLIC_QUERY = "https://orca.x-trillion.com/query";
+    const CALL_FALLBACK  = "pie chart of wnbf holdings by country";
+    const QUERY_FALLBACK = "Give me analytics for ISIN US168863CE60";
+    let codeLang = "curl";
+    let codeMode = "call";
+    function genCode() {
+      const q = (queryInput.value.trim() || (codeMode === "query" ? QUERY_FALLBACK : CALL_FALLBACK));
+      const cid = (clientInput.value.trim() || SITE.client_id || "guinness");
+      const qJ = JSON.stringify(q), cidJ = JSON.stringify(cid);
+      if (codeMode === "query") {
+        const url = PUBLIC_QUERY;
+        if (codeLang === "curl") {
+          return `curl -X POST ${url} \\\n`
+            + `  -H "Content-Type: application/json" \\\n`
+            + `  -H "X-Client-ID: ${cid}" \\\n`
+            + `  -H "X-API-Key: <YOUR_API_KEY>" \\\n`
+            + `  -d '${JSON.stringify({ query: q, client_id: cid })}'`;
+        }
+        if (codeLang === "js") {
+          return `const res = await fetch(${JSON.stringify(url)}, {\n`
+            + `  method: "POST",\n`
+            + `  headers: {\n    "Content-Type": "application/json",\n    "X-Client-ID": ${cidJ},\n    "X-API-Key": "<YOUR_API_KEY>"\n  },\n`
+            + `  body: JSON.stringify({ query: ${qJ}, client_id: ${cidJ} })\n});\n`
+            + `const env = await res.json();   // typed orca.v1 envelope\n`
+            + `env.result_type;  env.data;  env.meta;   // clean numerics + source lineage`;
+        }
+        return `import requests\n\n`
+          + `res = requests.post(\n    ${JSON.stringify(url)},\n`
+          + `    headers={"X-Client-ID": ${cidJ}, "X-API-Key": "<YOUR_API_KEY>"},\n`
+          + `    json={"query": ${qJ}, "client_id": ${cidJ}},\n)\n`
+          + `env = res.json()   # typed orca.v1 envelope: result_type, data, meta`;
+      }
+      const url = PUBLIC_CALL;
+      if (codeLang === "curl") {
+        const body = JSON.stringify({ tool: "orca_query", args: { query: q, client_id: cid }, include_display: true });
+        return `curl -X POST ${url} \\\n`
+          + `  -H "Content-Type: application/json" \\\n`
+          + `  -H "X-Client-ID: ${cid}" \\\n`
+          + `  -H "X-API-Key: <YOUR_API_KEY>" \\\n`
+          + `  -d '${body}'`;
+      }
+      if (codeLang === "js") {
+        return `const res = await fetch(${JSON.stringify(url)}, {\n`
+          + `  method: "POST",\n`
+          + `  headers: {\n    "Content-Type": "application/json",\n    "X-Client-ID": ${cidJ},\n    "X-API-Key": "<YOUR_API_KEY>"\n  },\n`
+          + `  body: JSON.stringify({\n    tool: "orca_query",\n    args: { query: ${qJ}, client_id: ${cidJ} },\n    include_display: true\n  })\n});\n`
+          + `const { display } = await res.json();\n`
+          + `display.blocks.forEach(renderBlock);   // Orca returns a ready-to-draw chart`;
+      }
+      return `import requests\n\n`
+        + `res = requests.post(\n    ${JSON.stringify(url)},\n`
+        + `    headers={"X-Client-ID": ${cidJ}, "X-API-Key": "<YOUR_API_KEY>"},\n`
+        + `    json={\n        "tool": "orca_query",\n        "args": {"query": ${qJ}, "client_id": ${cidJ}},\n        "include_display": True,\n    },\n)\n`
+        + `display = res.json()["display"]   # finished blocks, ready to draw`;
+    }
+    function setCodeNote() {
+      if (!codeNote) return;
+      codeNote.innerHTML = codeMode === "query"
+        ? `<code>/query</code> is the <strong>typed product API</strong> — best for single-bond analytics. You get a stable <code>orca.v1</code> envelope (clean <code>ytw</code>, <code>duration</code>, <code>rating</code> + source lineage), not display blocks. Use the <code>X-API-Key</code> issued to you; the placeholder keeps secrets out of this page.`
+        : `<code>/call</code> with <code>include_display: true</code> returns <strong>finished, ready-to-draw blocks</strong> — Orca decides it's a pie chart and hands back the data to draw. Use the <code>X-API-Key</code> issued to you; the placeholder keeps secrets out of this page.`;
+    }
+    function renderCode() { if (codeOutEl) codeOutEl.textContent = genCode(); setCodeNote(); }
+    document.querySelectorAll(".code-mode").forEach((b) => {
+      b.addEventListener("click", () => {
+        codeMode = b.getAttribute("data-mode");
+        document.querySelectorAll(".code-mode").forEach((x) => x.classList.remove("active"));
+        b.classList.add("active");
+        const isQ = codeMode === "query";
+        document.querySelectorAll(".code-presets-call").forEach((e) => e.style.display = isQ ? "none" : "");
+        document.querySelectorAll(".code-presets-query").forEach((e) => e.style.display = isQ ? "" : "none");
+        if (codeRunOut) codeRunOut.style.display = "none";
+        renderCode();
+      });
+    });
+    document.querySelectorAll(".code-lang").forEach((b) => {
+      b.addEventListener("click", () => {
+        codeLang = b.getAttribute("data-lang");
+        document.querySelectorAll(".code-lang").forEach((x) => x.classList.remove("active"));
+        b.classList.add("active");
+        renderCode();
+      });
+    });
+    document.querySelectorAll(".code-preset").forEach((b) => {
+      b.addEventListener("click", () => {
+        queryInput.value = b.textContent;
+        updateRequestShape();
+        renderCode();
+      });
+    });
+    const copyCodeBtn = document.getElementById("copyCode");
+    if (copyCodeBtn) copyCodeBtn.addEventListener("click", async () => {
+      await navigator.clipboard.writeText(genCode());
+      copyCodeBtn.textContent = "Copied";
+      setTimeout(() => { copyCodeBtn.textContent = "Copy code"; }, 1200);
+    });
+    const runCodeBtn = document.getElementById("runCode");
+    if (runCodeBtn) runCodeBtn.addEventListener("click", async () => {
+      if (codeMode === "call") {
+        sendQuery();
+        const t = document.querySelector('.tab[data-tab="tab-tables"]');
+        if (t) t.click();
+        return;
+      }
+      if (!codeRunOut) return;
+      codeRunOut.style.display = "block";
+      codeRunOut.textContent = "Running…";
+      try {
+        const res = await fetch(ORCA_BASE + "/query", {
+          method: "POST", credentials: FETCH_CREDS, headers: buildHeaders(),
+          body: JSON.stringify({ query: queryInput.value.trim() || QUERY_FALLBACK, client_id: clientInput.value.trim() || SITE.client_id })
+        });
+        codeRunOut.textContent = JSON.stringify(await res.json(), null, 2);
+      } catch (err) {
+        codeRunOut.textContent = "Request failed: " + err.message;
+      }
+    });
+    queryInput.addEventListener("input", renderCode);
+    clientInput.addEventListener("input", renderCode);
+    const codeTab = document.querySelector('.tab[data-tab="tab-code"]');
+    if (codeTab) codeTab.addEventListener("click", renderCode);
+    renderCode();
 
     document.getElementById("discover").addEventListener("click", () => {
       // Clear input and show discovering state
